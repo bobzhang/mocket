@@ -22,7 +22,7 @@ pub fn parse_cookie(StringView) -> Map[String, CookieItem]
 
 pub fn request_id() -> async (MocketEvent, async () -> &Responder noraise) -> &Responder noraise
 
-pub fn security_headers() -> async (MocketEvent, async () -> &Responder noraise) -> &Responder noraise
+pub fn security_headers(hsts? : String, csp? : String, permissions_policy? : String) -> async (MocketEvent, async () -> &Responder noraise) -> &Responder noraise
 
 pub fn text(&Show) -> &Responder
 
@@ -138,7 +138,7 @@ pub(all) struct HttpResponse {
   cookies : Map[String, CookieItem]
   mut raw_body : Bytes
 
-  fn new(StatusCode, headers? : Map[String, String], cookies? : Map[String, CookieItem], raw_body? : Bytes) -> HttpResponse
+  fn new(status_code~ : StatusCode, headers? : Map[String, String], cookies? : Map[String, CookieItem], raw_body? : Bytes) -> HttpResponse
 } derive(@debug.Debug)
 pub fn HttpResponse::bad_request() -> Self
 pub fn HttpResponse::body(Self, &Responder) -> Self
@@ -150,7 +150,7 @@ pub fn HttpResponse::header(Self, String, String) -> Self
 pub fn HttpResponse::internal_server_error() -> Self
 pub fn HttpResponse::json(Self, &ToJson) -> Self
 pub fn[T : ToJson] HttpResponse::json_value(Self, T) -> Self
-pub fn HttpResponse::new(StatusCode, headers? : Map[String, String], cookies? : Map[String, CookieItem], raw_body? : Bytes) -> Self
+pub fn HttpResponse::new(status_code~ : StatusCode, headers? : Map[String, String], cookies? : Map[String, CookieItem], raw_body? : Bytes) -> Self
 pub fn HttpResponse::no_content() -> Self
 pub fn HttpResponse::not_found() -> Self
 pub fn HttpResponse::ok() -> Self
@@ -378,7 +378,7 @@ pub struct TestResponse {
   status : StatusCode
   headers : Map[String, String]
   body_bytes : Bytes
-}
+} derive(@debug.Debug)
 pub fn[T : @json.FromJson] TestResponse::body_json(Self) -> T raise
 pub fn TestResponse::body_text(Self) -> String
 

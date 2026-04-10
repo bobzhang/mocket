@@ -19,6 +19,45 @@ async test "security_headers sets all expected headers" {
     event.res.headers.get("Referrer-Policy"),
     content="Some(\"strict-origin-when-cross-origin\")",
   )
+  inspect(
+    event.res.headers.get("Strict-Transport-Security"),
+    content="Some(\"max-age=63072000; includeSubDomains\")",
+  )
+  inspect(
+    event.res.headers.get("Content-Security-Policy"),
+    content="Some(\"default-src 'self'\")",
+  )
+  inspect(
+    event.res.headers.get("Permissions-Policy"),
+    content="Some(\"camera=(), microphone=(), geolocation=()\")",
+  )
+}
+
+///|
+async test "security_headers with custom values" {
+  let event = MocketEvent::{
+    req: HttpRequest(Get, "/test", {}, raw_body=b""),
+    res: HttpResponse(status_code=OK),
+    params: {},
+  }
+  let mw = security_headers(
+    hsts="max-age=3600",
+    csp="default-src 'self'; script-src 'self'",
+    permissions_policy="",
+  )
+  let handler : HttpHandler = fn(_event) noraise { "ok" }
+  let middlewares : Array[(String, Middleware)] = [("", mw)]
+  ignore(execute_middlewares(middlewares, event, handler))
+  inspect(
+    event.res.headers.get("Strict-Transport-Security"),
+    content="Some(\"max-age=3600\")",
+  )
+  inspect(
+    event.res.headers.get("Content-Security-Policy"),
+    content="Some(\"default-src 'self'; script-src 'self'\")",
+  )
+  // permissions_policy="" disables the header
+  inspect(event.res.headers.get("Permissions-Policy"), content="None")
 }
 
 ///|
