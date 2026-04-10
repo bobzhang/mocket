@@ -12,7 +12,7 @@ pub struct TestResponse {
   status : StatusCode
   headers : Map[String, String]
   body_bytes : Bytes
-}
+} derive(Debug(ignore=Bytes))
 
 ///|
 /// Creates a new test client wrapping the given app.

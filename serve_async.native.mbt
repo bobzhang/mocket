@@ -134,7 +134,7 @@ fn allow_header_value(methods : Array[String]) -> String {
 fn method_not_allowed_handler(allow : String) -> HttpHandler {
   fn(event) noraise {
     event.res.headers.set("Allow", allow)
-    HttpResponse(MethodNotAllowed).body("Method Not Allowed")
+    HttpResponse(status_code=MethodNotAllowed).body("Method Not Allowed")
   }
 }
 
@@ -142,7 +142,7 @@ fn method_not_allowed_handler(allow : String) -> HttpHandler {
 fn options_handler(allow : String) -> HttpHandler {
   fn(event) noraise {
     event.res.headers.set("Allow", allow)
-    HttpResponse(NoContent)
+    HttpResponse(status_code=NoContent)
   }
 }
 
@@ -289,7 +289,7 @@ async fn send_request_entity_too_large_async(
   request : @http.Request,
   conn : @http.ServerConnection,
 ) -> Unit raise Error {
-  let response = HttpResponse(RequestEntityTooLarge).body(
+  let response = HttpResponse(status_code=RequestEntityTooLarge).body(
     "Request Entity Too Large",
   )
   response.headers.set("Content-Type", "text/plain; charset=utf-8")
@@ -301,7 +301,9 @@ async fn send_request_timeout_async(
   request : @http.Request,
   conn : @http.ServerConnection,
 ) -> Unit raise Error {
-  let response = HttpResponse(RequestTimeout).body("Request Timeout")
+  let response = HttpResponse(status_code=RequestTimeout).body(
+    "Request Timeout",
+  )
   response.headers.set("Content-Type", "text/plain; charset=utf-8")
   send_response_and_close_async(request, conn, response)
 }
@@ -311,7 +313,7 @@ async fn send_not_found_async(
   request : @http.Request,
   conn : @http.ServerConnection,
 ) -> Unit raise Error {
-  let response = HttpResponse(NotFound).body("Not Found")
+  let response = HttpResponse(status_code=NotFound).body("Not Found")
   response.headers.set("Content-Type", "text/plain; charset=utf-8")
   send_response_and_close_async(request, conn, response)
 }
@@ -514,7 +516,7 @@ async fn handle_request_async(
       copy_async_headers(request.headers),
       request_body,
     ),
-    res: HttpResponse(OK),
+    res: HttpResponse(status_code=OK),
     params,
   }
   let responder = execute_middlewares(app.middlewares, event, handler)

@@ -1,49 +1,49 @@
 ///|
 /// Creates a 200 OK response.
 pub fn HttpResponse::ok() -> HttpResponse {
-  HttpResponse(OK)
+  HttpResponse(status_code=OK)
 }
 
 ///|
 /// Creates a 201 Created response.
 pub fn HttpResponse::created() -> HttpResponse {
-  HttpResponse(Created)
+  HttpResponse(status_code=Created)
 }
 
 ///|
 /// Creates a 204 No Content response.
 pub fn HttpResponse::no_content() -> HttpResponse {
-  HttpResponse(NoContent)
+  HttpResponse(status_code=NoContent)
 }
 
 ///|
 /// Creates a 400 Bad Request response.
 pub fn HttpResponse::bad_request() -> HttpResponse {
-  HttpResponse(BadRequest)
+  HttpResponse(status_code=BadRequest)
 }
 
 ///|
 /// Creates a 401 Unauthorized response.
 pub fn HttpResponse::unauthorized() -> HttpResponse {
-  HttpResponse(Unauthorized)
+  HttpResponse(status_code=Unauthorized)
 }
 
 ///|
 /// Creates a 403 Forbidden response.
 pub fn HttpResponse::forbidden() -> HttpResponse {
-  HttpResponse(Forbidden)
+  HttpResponse(status_code=Forbidden)
 }
 
 ///|
 /// Creates a 404 Not Found response.
 pub fn HttpResponse::not_found() -> HttpResponse {
-  HttpResponse(NotFound)
+  HttpResponse(status_code=NotFound)
 }
 
 ///|
 /// Creates a 500 Internal Server Error response.
 pub fn HttpResponse::internal_server_error() -> HttpResponse {
-  HttpResponse(InternalServerError)
+  HttpResponse(status_code=InternalServerError)
 }
 
 ///|
@@ -52,7 +52,7 @@ pub fn HttpResponse::error(
   status : StatusCode,
   message : String,
 ) -> HttpResponse {
-  let res = HttpResponse(status)
+  let res = HttpResponse(status_code=status)
   let json : Json = {
     "error": {
       "status": status.to_int().to_json(),

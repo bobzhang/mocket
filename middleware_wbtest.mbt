@@ -22,7 +22,7 @@ test "normalize_middleware_base_path keeps path without trailing slash" {
 async test "empty middleware list calls final handler directly" {
   let event = MocketEvent::{
     req: HttpRequest(Get, "/test", {}, raw_body=b""),
-    res: HttpResponse(OK),
+    res: HttpResponse(status_code=OK),
     params: {},
   }
   let handler : HttpHandler = fn(_event) noraise { "handler-result" }
@@ -43,7 +43,7 @@ async test "single middleware wraps final handler" {
   }
   let event = MocketEvent::{
     req: HttpRequest(Get, "/test", {}, raw_body=b""),
-    res: HttpResponse(OK),
+    res: HttpResponse(status_code=OK),
     params: {},
   }
   let handler : HttpHandler = fn(_event) noraise {
@@ -77,7 +77,7 @@ async test "multiple middlewares execute in onion model order" {
   }
   let event = MocketEvent::{
     req: HttpRequest(Get, "/test", {}, raw_body=b""),
-    res: HttpResponse(OK),
+    res: HttpResponse(status_code=OK),
     params: {},
   }
   let handler : HttpHandler = fn(_event) noraise {
@@ -103,7 +103,7 @@ async test "path-scoped middleware skips non-matching request" {
   }
   let event = MocketEvent::{
     req: HttpRequest(Get, "/test", {}, raw_body=b""),
-    res: HttpResponse(OK),
+    res: HttpResponse(status_code=OK),
     params: {},
   }
   let handler : HttpHandler = fn(_event) noraise {
@@ -129,7 +129,7 @@ async test "path-scoped middleware executes for matching request" {
   }
   let event = MocketEvent::{
     req: HttpRequest(Get, "/api/users", {}, raw_body=b""),
-    res: HttpResponse(OK),
+    res: HttpResponse(status_code=OK),
     params: {},
   }
   let handler : HttpHandler = fn(_event) noraise {

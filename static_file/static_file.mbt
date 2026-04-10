@@ -164,14 +164,15 @@ pub impl ServeStaticProvider for StaticFileProvider with get_contents(
             _ => {}
           }
           try file.read_all().binary() catch {
-            _ => @crescent.HttpResponse(NotFound).body("Not Found")
+            _ => @crescent.HttpResponse(status_code=NotFound).body("Not Found")
           } noraise {
-            contents => @crescent.HttpResponse(OK, headers~).body(contents)
+            contents =>
+              @crescent.HttpResponse(status_code=OK, headers~).body(contents)
           }
         }
-        None => @crescent.HttpResponse(NotFound).body("Not Found")
+        None => @crescent.HttpResponse(status_code=NotFound).body("Not Found")
       }
-    None => @crescent.HttpResponse(NotFound).body("Not Found")
+    None => @crescent.HttpResponse(status_code=NotFound).body("Not Found")
   }
 }
 

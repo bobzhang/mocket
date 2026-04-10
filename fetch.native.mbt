@@ -153,7 +153,7 @@ fn prepare_fetch_payload_bytes(
     None =>
       match data {
         Some(responder_data) => {
-          let res = HttpResponse(OK)
+          let res = HttpResponse(status_code=OK)
           responder_data.options(res)
           res.headers.each((key, value) => {
             if !@mhttp.has_header_case_insensitive(req_headers, key) {
@@ -207,7 +207,7 @@ pub async fn fetch(
       err => raise FetchError::RequestFailed("\{err}")
     }
   HttpResponse(
-    StatusCode::from_int(response.code),
+    status_code=StatusCode::from_int(response.code),
     headers=response_headers_from_async(response.headers),
     raw_body=response_body,
   )

@@ -129,7 +129,7 @@ fn build_app() -> @crescent.Mocket {
   })
 
   // Health check — get_raw for handlers that never raise
-  app.get_raw("/health", fn(_) noraise { "ok" })
+  app.get_raw("/health", _ => "ok")
 
   app
 }
@@ -140,9 +140,9 @@ fn build_app() -> @crescent.Mocket {
 Register middleware before routes. They execute in onion order (first registered
 = outermost layer).
 
-```moonbit nocheck
+```moonbit check
 ///|
-fn build_app() -> @crescent.Mocket {
+fn _build_app() -> @crescent.Mocket {
   let app = @crescent.Mocket()
 
   // Security headers on every response
@@ -152,7 +152,7 @@ fn build_app() -> @crescent.Mocket {
   app.use_middleware(@crescent.request_id())
 
   // Request logging
-  app.use_middleware(fn(event, next) {
+  app.use_middleware((event, next) => {
     let start = @async.now()
     let res = next()
     let ms = @async.now() - start
@@ -162,7 +162,7 @@ fn build_app() -> @crescent.Mocket {
 
   // Auth only on /api routes
   app.use_middleware(
-    fn(event, next) {
+    (event, next) => {
       match event.req.get_header("Authorization") {
         Some(_) => next()
         None => HttpResponse::unauthorized()
@@ -507,7 +507,7 @@ directory index fallback (`index.html`, `index.htm`, ...).
 ```mbt check
 ///|
 test "set and format cookie" {
-  let res = HttpResponse::new(OK)
+  let res = HttpResponse::new(status_code=OK)
   res.set_cookie(
     "session",
     "abc123",
@@ -727,7 +727,7 @@ fn rate_limiter() -> Middleware {
 test "param and param_int" {
   let event = MocketEvent::{
     req: HttpRequest::new(Get, "/", {}, raw_body=b""),
-    res: HttpResponse::new(OK),
+    res: HttpResponse::new(status_code=OK),
     params: { "id": "42", "name": "alice" },
   }
   assert_eq(event.param("name"), Some("alice"))
@@ -739,7 +739,7 @@ test "param and param_int" {
 test "require_param raises on missing" {
   let event = MocketEvent::{
     req: HttpRequest::new(Get, "/", {}, raw_body=b""),
-    res: HttpResponse::new(OK),
+    res: HttpResponse::new(status_code=OK),
     params: {},
   }
   let result = try? event.require_param_int("id")

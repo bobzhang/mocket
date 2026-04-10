@@ -142,7 +142,7 @@ test "get_cookie supports case-insensitive header lookup and delete_cookie expir
   }
   assert_eq(req_mixed.get_cookie("missing"), None)
 
-  let res = HttpResponse::new(OK)
+  let res = HttpResponse::new(status_code=OK)
   res.delete_cookie("session")
   match res.cookies.get("session") {
     Some(cookie) => {
