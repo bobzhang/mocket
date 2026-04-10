@@ -177,10 +177,106 @@ pub impl ServeStaticProvider for StaticFileProvider with get_contents(
 }
 
 ///|
-/// Returns the MIME type for the given asset identifier. This implementation
-/// always returns `None`, deferring type detection to the framework.
-pub impl ServeStaticProvider for StaticFileProvider with get_type(_, _ : String) -> String? {
+fn mime_type_for_extension(ext : String) -> String? {
+  // Text
+  if ext == "html" || ext == "htm" {
+    return Some("text/html; charset=utf-8")
+  }
+  if ext == "css" {
+    return Some("text/css; charset=utf-8")
+  }
+  if ext == "js" || ext == "mjs" {
+    return Some("application/javascript; charset=utf-8")
+  }
+  if ext == "json" {
+    return Some("application/json; charset=utf-8")
+  }
+  if ext == "xml" {
+    return Some("application/xml; charset=utf-8")
+  }
+  if ext == "txt" {
+    return Some("text/plain; charset=utf-8")
+  }
+  if ext == "csv" {
+    return Some("text/csv; charset=utf-8")
+  }
+  if ext == "md" {
+    return Some("text/markdown; charset=utf-8")
+  }
+  // Images
+  if ext == "png" {
+    return Some("image/png")
+  }
+  if ext == "jpg" || ext == "jpeg" {
+    return Some("image/jpeg")
+  }
+  if ext == "gif" {
+    return Some("image/gif")
+  }
+  if ext == "svg" {
+    return Some("image/svg+xml")
+  }
+  if ext == "ico" {
+    return Some("image/x-icon")
+  }
+  if ext == "webp" {
+    return Some("image/webp")
+  }
+  if ext == "avif" {
+    return Some("image/avif")
+  }
+  // Fonts
+  if ext == "woff" {
+    return Some("font/woff")
+  }
+  if ext == "woff2" {
+    return Some("font/woff2")
+  }
+  if ext == "ttf" {
+    return Some("font/ttf")
+  }
+  if ext == "otf" {
+    return Some("font/otf")
+  }
+  // Media
+  if ext == "mp4" {
+    return Some("video/mp4")
+  }
+  if ext == "webm" {
+    return Some("video/webm")
+  }
+  if ext == "mp3" {
+    return Some("audio/mpeg")
+  }
+  if ext == "ogg" {
+    return Some("audio/ogg")
+  }
+  // Application
+  if ext == "wasm" {
+    return Some("application/wasm")
+  }
+  if ext == "pdf" {
+    return Some("application/pdf")
+  }
+  if ext == "zip" {
+    return Some("application/zip")
+  }
+  if ext == "gz" {
+    return Some("application/gzip")
+  }
+  if ext == "xhtml" {
+    return Some("application/xhtml+xml; charset=utf-8")
+  }
   None
+}
+
+///|
+/// Returns the MIME type for the given file extension.
+pub impl ServeStaticProvider for StaticFileProvider with get_type(
+  _,
+  ext : String,
+) -> String? {
+  mime_type_for_extension(ext)
 }
 
 ///|

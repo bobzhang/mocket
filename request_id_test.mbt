@@ -19,8 +19,10 @@ async test "request_id middleware generates unique ids" {
   assert_true(
     res1.headers.get("X-Request-Id") != res2.headers.get("X-Request-Id"),
   )
-  // Body should contain the ID
-  assert_true(res1.body_text().has_prefix("id:req-"))
+  // Body should contain the ID (opaque hex format, not sequential)
+  assert_true(res1.body_text().has_prefix("id:"))
+  // Must NOT be the old sequential format
+  assert_false(res1.body_text().has_prefix("id:req-"))
 }
 
 ///|

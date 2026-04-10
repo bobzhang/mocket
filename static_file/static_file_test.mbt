@@ -73,6 +73,35 @@ async fn try_remove(path : String) -> Unit noraise {
 }
 
 ///|
+test "get_type returns correct MIME types for common extensions" {
+  let provider = StaticFileProvider::new(path=".")
+  // Text types
+  assert_eq(provider.get_type("html"), Some("text/html; charset=utf-8"))
+  assert_eq(provider.get_type("htm"), Some("text/html; charset=utf-8"))
+  assert_eq(provider.get_type("css"), Some("text/css; charset=utf-8"))
+  assert_eq(
+    provider.get_type("js"),
+    Some("application/javascript; charset=utf-8"),
+  )
+  assert_eq(provider.get_type("json"), Some("application/json; charset=utf-8"))
+  assert_eq(provider.get_type("txt"), Some("text/plain; charset=utf-8"))
+  // Images
+  assert_eq(provider.get_type("png"), Some("image/png"))
+  assert_eq(provider.get_type("jpg"), Some("image/jpeg"))
+  assert_eq(provider.get_type("jpeg"), Some("image/jpeg"))
+  assert_eq(provider.get_type("svg"), Some("image/svg+xml"))
+  assert_eq(provider.get_type("webp"), Some("image/webp"))
+  // Fonts
+  assert_eq(provider.get_type("woff2"), Some("font/woff2"))
+  // Application
+  assert_eq(provider.get_type("wasm"), Some("application/wasm"))
+  assert_eq(provider.get_type("pdf"), Some("application/pdf"))
+  // Unknown
+  assert_eq(provider.get_type("xyz"), None)
+  assert_eq(provider.get_type(""), None)
+}
+
+///|
 async test "static_file blocks symlink escaping root" {
   // Create a symlink inside testdata that points to /etc/passwd (outside root)
   let link_path = "static_file/testdata/escape_link"
