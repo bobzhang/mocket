@@ -334,12 +334,7 @@ This registers `GET /api/todos`, `GET /api/todos/:id`, `POST /api/todos`,
 struct ResItem {
   id : Int
   name : String
-} derive(ToJson, FromJson, Eq)
-
-///|
-impl Show for ResItem with output(self, logger) {
-  logger.write_string("ResItem(\{self.id}, \{self.name})")
-}
+} derive(ToJson, FromJson, Eq, Debug)
 
 ///|
 #warnings("-unnecessary_annotation")
@@ -351,26 +346,27 @@ struct CreateResItem {
 async test "resource CRUD" {
   let items : Array[ResItem] = [{ id: 1, name: "Alpha" }]
   let app = Mocket::new()
-  app.resource("/items", {
-    list: Some(_ => HttpResponse::ok().json_value(items)),
-    get: Some(event => {
-      let id = event.require_param_int("id")
-      for item in items {
-        if item.id == id {
-          return HttpResponse::ok().json_value(item)
+  app.resource(
+    "/items",
+    ResourceConfig(
+      list=_ => HttpResponse::ok().json_value(items),
+      get=event => {
+        let id = event.require_param_int("id")
+        for item in items {
+          if item.id == id {
+            return HttpResponse::ok().json_value(item)
+          }
         }
-      }
-      raise HttpError::HttpError(NotFound, "not found")
-    }),
-    create: Some(event => {
-      let input : CreateResItem = event.json()
-      let item = ResItem::{ id: 2, name: input.name }
-      items.push(item)
-      HttpResponse::created().json_value(item)
-    }),
-    update: None,
-    delete: None,
-  })
+        raise HttpError::HttpError(NotFound, "not found")
+      },
+      create=event => {
+        let input : CreateResItem = event.json()
+        let item = ResItem::{ id: 2, name: input.name }
+        items.push(item)
+        HttpResponse::created().json_value(item)
+      },
+    ),
+  )
   let client = TestClient::new(app)
 
   // List
@@ -389,7 +385,13 @@ async test "resource CRUD" {
   let res3 = client.get("/items/1")
   assert_eq(res3.status, OK)
   let item : ResItem = res3.body_json()
-  assert_eq(item, { id: 1, name: "Alpha" })
+  // TODO(upstream): change the bound of `assert_eq` from `Show` to `Debug`
+  debug_inspect(
+    item,
+    content=(
+      #|{ id: 1, name: "Alpha" }
+    ),
+  )
 
   // Not found
   let res4 = client.get("/items/999")

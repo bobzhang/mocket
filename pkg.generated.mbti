@@ -252,7 +252,7 @@ pub fn[T] RadixRouter::merge(Self[T], Self[T]) -> Unit
 pub fn[T] RadixRouter::new() -> Self[T]
 pub fn[T] RadixRouter::search(Self[T], String, String) -> (T, Map[String, StringView])?
 
-pub(all) struct ResourceConfig {
+pub struct ResourceConfig {
   list : (async (MocketEvent) -> &Responder)?
   get : (async (MocketEvent) -> &Responder)?
   create : (async (MocketEvent) -> &Responder)?
