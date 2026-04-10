@@ -1,6 +1,6 @@
 ///|
 test "string responder sets content type" {
-  let res = @crescent.HttpResponse(OK)
+  let res = @crescent.HttpResponse(status_code=OK)
   let responder : &@crescent.Responder = "hello"
   responder.options(res)
   inspect(
@@ -27,7 +27,7 @@ test "string responder outputs utf8 with unicode" {
 
 ///|
 test "stringview responder sets content type" {
-  let res = @crescent.HttpResponse(OK)
+  let res = @crescent.HttpResponse(status_code=OK)
   let s : StringView = "world"[:]
   let responder : &@crescent.Responder = s
   responder.options(res)
@@ -48,7 +48,7 @@ test "stringview responder outputs utf8" {
 
 ///|
 test "json responder sets content type" {
-  let res = @crescent.HttpResponse(OK)
+  let res = @crescent.HttpResponse(status_code=OK)
   let j : Json = { "key": "value" }
   let responder : &@crescent.Responder = j
   responder.options(res)
@@ -69,7 +69,7 @@ test "json responder outputs json string" {
 
 ///|
 test "tojson responder sets content type" {
-  let res = @crescent.HttpResponse(OK)
+  let res = @crescent.HttpResponse(status_code=OK)
   let j : Json = { "a": 1 }
   let obj : &ToJson = j
   let responder : &@crescent.Responder = obj
@@ -92,7 +92,7 @@ test "tojson responder outputs json string" {
 
 ///|
 test "bytes responder sets content type" {
-  let res = @crescent.HttpResponse(OK)
+  let res = @crescent.HttpResponse(status_code=OK)
   let responder : &@crescent.Responder = b"\x01\x02\x03"
   responder.options(res)
   inspect(
@@ -111,8 +111,8 @@ test "bytes responder outputs raw bytes" {
 
 ///|
 test "http response responder copies status code" {
-  let res = @crescent.HttpResponse(OK)
-  let source = @crescent.HttpResponse(NotFound)
+  let res = @crescent.HttpResponse(status_code=OK)
+  let source = @crescent.HttpResponse(status_code=NotFound)
   let responder : &@crescent.Responder = source
   responder.options(res)
   inspect(res.status_code, content="NotFound")
@@ -120,8 +120,10 @@ test "http response responder copies status code" {
 
 ///|
 test "http response responder merges headers" {
-  let res = @crescent.HttpResponse(OK)
-  let source = @crescent.HttpResponse(OK, headers={ "X-Custom": "test-value" })
+  let res = @crescent.HttpResponse(status_code=OK)
+  let source = @crescent.HttpResponse(status_code=OK, headers={
+    "X-Custom": "test-value",
+  })
   let responder : &@crescent.Responder = source
   responder.options(res)
   inspect(res.headers.get("X-Custom"), content="Some(\"test-value\")")
@@ -130,7 +132,7 @@ test "http response responder merges headers" {
 ///|
 test "http response responder outputs raw body" {
   let buf = @buffer.new()
-  let source = @crescent.HttpResponse(OK, raw_body=b"response body")
+  let source = @crescent.HttpResponse(status_code=OK, raw_body=b"response body")
   let responder : &@crescent.Responder = source
   responder.output(buf)
   assert_eq(buf.contents(), b"response body")
@@ -138,7 +140,7 @@ test "http response responder outputs raw body" {
 
 ///|
 test "http request responder merges headers" {
-  let res = @crescent.HttpResponse(OK)
+  let res = @crescent.HttpResponse(status_code=OK)
   let req = @crescent.HttpRequest(
     Get,
     "/",
@@ -166,7 +168,7 @@ test "http request responder outputs raw body" {
 
 ///|
 test "html helper sets content type" {
-  let res = @crescent.HttpResponse(OK)
+  let res = @crescent.HttpResponse(status_code=OK)
   let responder = @crescent.html("<h1>Hello</h1>")
   responder.options(res)
   inspect(
@@ -185,7 +187,7 @@ test "html helper outputs html content" {
 
 ///|
 test "text helper sets content type" {
-  let res = @crescent.HttpResponse(OK)
+  let res = @crescent.HttpResponse(status_code=OK)
   let responder = @crescent.text("plain text")
   responder.options(res)
   inspect(

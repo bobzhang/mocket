@@ -47,7 +47,7 @@ impl ServeStaticProvider for TestStaticProvider with get_contents(_, id) {
   match id {
     "" => html("index")
     "hello.txt" => text("hi")
-    _ => HttpResponse::new(NotFound).body("Not Found")
+    _ => HttpResponse::new(status_code=NotFound).body("Not Found")
   }
 }
 
@@ -96,8 +96,8 @@ impl ServeStaticProvider for EncodedStaticProvider with get_meta(_, id) {
 ///|
 impl ServeStaticProvider for EncodedStaticProvider with get_contents(_, id) {
   match id {
-    "hello.txt.gz" => HttpResponse::new(OK).body(b"encoded")
-    _ => HttpResponse::new(NotFound).body("Not Found")
+    "hello.txt.gz" => HttpResponse::new(status_code=OK).body(b"encoded")
+    _ => HttpResponse::new(status_code=NotFound).body("Not Found")
   }
 }
 
@@ -523,7 +523,7 @@ async test "serve strips query and reads put bodies" {
     let name = event.params.get("name").unwrap_or("")
     let payload : String = event.req.body() catch { _ => "" }
     event.res.headers.set("X-Kind", event.req.get_query("kind").unwrap_or(""))
-    HttpResponse::new(OK).body("\{name}:\{payload}")
+    HttpResponse::new(status_code=OK).body("\{name}:\{payload}")
   })
   with_test_server(app, port => {
     let (response1, body1) = @http.get(
@@ -2696,9 +2696,9 @@ async test "serve preserves explicit content-type headers without duplicates" {
   })
   app.get("/override", event => {
     event.res.headers.set("content-type", "text/plain; charset=latin1")
-    HttpResponse::new(OK, headers={ "Content-Type": "application/json" }).body(
-      "{}",
-    )
+    HttpResponse::new(status_code=OK, headers={
+      "Content-Type": "application/json",
+    }).body("{}")
   })
   with_test_server(app, port => {
     let custom_headers = issue_raw_request_headers(
@@ -2734,14 +2734,16 @@ async test "serve handles head fallback, method not allowed, and options" {
     "payload"
   })
   app.get("/empty", _ => "")
-  app.post("/resource", _ => HttpResponse::new(Created).body("created"))
+  app.post("/resource", _ => {
+    HttpResponse::new(status_code=Created).body("created")
+  })
   app.head("/override", event => {
     event.res.headers.set("X-Reply", "head")
-    HttpResponse::new(OK).body("override")
+    HttpResponse::new(status_code=OK).body("override")
   })
   app.get("/override", event => {
     event.res.headers.set("X-Reply", "get")
-    HttpResponse::new(OK).body("get-body")
+    HttpResponse::new(status_code=OK).body("get-body")
   })
   with_test_server(app, port => {
     let (head_response, head_body) = issue_request(port, Head, "/resource")
@@ -2822,8 +2824,8 @@ async test "serve handles head fallback, method not allowed, and options" {
 ///|
 async test "serve binds by port and dispatches trace and connect routes" {
   let app = Mocket::new()
-  app.trace("/trace", _ => HttpResponse::new(OK).body("trace"))
-  app.connect("/connect", _ => HttpResponse::new(OK).body("connect"))
+  app.trace("/trace", _ => HttpResponse::new(status_code=OK).body("trace"))
+  app.connect("/connect", _ => HttpResponse::new(status_code=OK).body("connect"))
   with_port_bound_test_server(app, port => {
     let (trace_response, trace_body) = issue_request(port, Trace, "/trace")
     assert_eq(trace_response.code, 200)

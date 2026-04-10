@@ -5,7 +5,7 @@ fn make_event(
 ) -> @crescent.MocketEvent {
   {
     req: @crescent.HttpRequest(http_method, "/resource", headers, raw_body=b""),
-    res: @crescent.HttpResponse(OK),
+    res: @crescent.HttpResponse(status_code=OK),
     params: {},
   }
 }

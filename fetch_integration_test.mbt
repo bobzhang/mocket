@@ -5,12 +5,12 @@ async test "fetch uses async client for request headers and payloads" {
   app.get("/fetch/hello", event => {
     let who = event.req.headers.get("x-name").unwrap_or("world").to_string()
     event.res.headers.set("X-Reply", "native")
-    HttpResponse::new(OK).body("hello:\{who}")
+    HttpResponse::new(status_code=OK).body("hello:\{who}")
   })
   app.post("/fetch/echo", event => {
     let payload : String = event.req.body() catch { _ => "" }
     event.res.headers.set("X-Body-Len", payload.length().to_string())
-    HttpResponse::new(Created).body("post:\{payload}")
+    HttpResponse::new(status_code=Created).body("post:\{payload}")
   })
   app.patch("/fetch/bin", event => {
     event.res.headers.set("X-Body-Len", event.req.raw_body.length().to_string())
@@ -94,7 +94,7 @@ async test "fetch supports head and rejects unsupported protocols" {
   let app = Mocket::new()
   app.head("/fetch/head", event => {
     event.res.headers.set("X-Reply", "head")
-    HttpResponse::new(NoContent).body("ignored")
+    HttpResponse::new(status_code=NoContent).body("ignored")
   })
   with_test_server(app, port => {
     let response = fetch(localhost_url(port, "/fetch/head"), Head)

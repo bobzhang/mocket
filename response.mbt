@@ -7,7 +7,7 @@ pub(all) struct HttpResponse {
   mut raw_body : Bytes
 
   fn new(
-    status_code : StatusCode,
+    status_code~ : StatusCode,
     headers? : Map[String, String],
     cookies? : Map[String, CookieItem],
     raw_body? : Bytes,
@@ -26,7 +26,7 @@ pub fn[T : BodyReader] HttpResponse::read_body(self : HttpResponse) -> T raise {
 ///|
 /// Creates a new `HttpResponse` with the given status code and optional headers, cookies, and body.
 pub fn HttpResponse::new(
-  status_code : StatusCode,
+  status_code~ : StatusCode,
   headers? : Map[String, String],
   cookies? : Map[String, CookieItem],
   raw_body? : Bytes,
@@ -108,7 +108,7 @@ pub fn HttpResponse::to_responder(self : HttpResponse) -> &Responder {
 
 ///|
 test "read_response_body" {
-  let res = HttpResponse(OK, raw_body=b"{\"Hello\":\"Response\"}")
+  let res = HttpResponse(status_code=OK, raw_body=b"{\"Hello\":\"Response\"}")
   let text : String = res.read_body()
   let json : Json = res.read_body()
   inspect(

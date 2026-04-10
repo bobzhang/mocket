@@ -1,4 +1,4 @@
 ///|
 fn handle_not_found() -> HttpHandler {
-  (_ : MocketEvent) => HttpResponse(NotFound).body("Not Found")
+  (_ : MocketEvent) => HttpResponse(status_code=NotFound).body("Not Found")
 }
