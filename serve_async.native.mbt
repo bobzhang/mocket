@@ -665,76 +665,91 @@ pub async fn Mocket::serve_on_until_with(
       let _ = resolve_native_websocket_outgoing_queue_capacity(options)
       let _ = resolve_native_websocket_overflow_policy(options)
       let _ = resolve_native_websocket_read_timeout_ms(options)
-      // Graceful shutdown with manual accept loop:
-      // 1. Accept connections in a loop; each handler is a group child.
-      // 2. On shutdown signal, server.close() causes accept() to fail.
-      // 3. Accept loop (no_wait=true) is cancelled on group exit.
-      // 4. Handler tasks (no_wait=false) are waited for by the group.
-      // 5. Outer with_timeout_opt enforces the hard deadline.
-      // Uses a single shutdown waiter to avoid the race with shutdown.put(()).
+      // Graceful shutdown with manual accept loop.
+      // Architecture: inner task group tracks handler tasks; outer group
+      // provides the cancellation boundary for the hard timeout.
+      //
+      // Timeline:
+      // 1. Accept loop runs, spawning handler tasks into inner group.
+      // 2. Shutdown signal → set draining flag, close server.
+      // 3. Accept loop exits (accept fails after close).
+      // 4. Inner group waits for handler tasks to finish current requests.
+      // 5. Hard timeout (started AFTER shutdown) cancels everything.
       let sem : @async.Semaphore? = match max_connections {
         Some(n) => Some(@async.Semaphore::new(n))
         None => None
       }
-      // Hard timeout wraps the entire drain. If handlers don't finish
-      // within timeout_ms after shutdown, everything is cancelled.
-      ignore(
-        @async.with_timeout_opt(timeout_ms, () => {
-          @async.with_task_group(group => {
-            // Accept loop: no_wait=true so it's cancelled on group exit
-            group.spawn_bg(no_wait=true, allow_failure=true, () => {
-              for ;; {
-                let conn_result : Result[
-                  (@http.ServerConnection, @socket.Addr),
-                  Error,
-                ] = try? server.accept()
-                match conn_result {
-                  Err(_) => break // server closed, stop accepting
-                  Ok((conn, _addr)) => {
-                    match sem {
-                      Some(s) => s.acquire()
+      let draining : Ref[Bool] = Ref::new(false)
+      let handlers_drained : @async.Queue[Unit] = @async.Queue::new(
+        kind=Unbounded,
+      )
+      @async.with_task_group(outer => {
+        // Inner group: accept loop + handler tasks
+        outer.spawn_bg(no_wait=true, allow_failure=true, () => {
+          @async.with_task_group(inner => {
+            // Accept loop is the main function of inner group.
+            // When it exits, inner group waits for handler children.
+            for ;; {
+              let conn_result : Result[
+                (@http.ServerConnection, @socket.Addr),
+                Error,
+              ] = try? server.accept()
+              match conn_result {
+                Err(_) => break // server closed, stop accepting
+                Ok((conn, _addr)) => {
+                  match sem {
+                    Some(s) => s.acquire()
+                    None => ()
+                  }
+                  inner.spawn_bg(allow_failure=true, () => {
+                    defer (match sem {
+                      Some(s) => s.release()
                       None => ()
-                    }
-                    // Handler task: no_wait=false (default), group waits for it
-                    group.spawn_bg(allow_failure=true, () => {
-                      defer (match sem {
-                        Some(s) => s.release()
-                        None => ()
-                      })
-                      // Keep-alive loop: serve multiple requests per connection
-                      for ;; {
-                        let request_result : Result[@http.Request, Error] = try? conn.read_request()
-                        match request_result {
-                          Ok(request) => {
-                            let body_reader : &@io.Reader = conn
-                            handle_request_async(
-                              self, ws_runtime_id, request, body_reader, conn, options,
-                            ) catch {
-                              _ => {
-                                conn.close()
-                                break
-                              }
+                    })
+                    // Keep-alive loop: check draining after each request
+                    for ;; {
+                      let req_result : Result[@http.Request, Error] = try? conn.read_request()
+                      match req_result {
+                        Ok(request) => {
+                          let body_reader : &@io.Reader = conn
+                          handle_request_async(
+                            self, ws_runtime_id, request, body_reader, conn, options,
+                          ) catch {
+                            _ => {
+                              conn.close()
+                              break
                             }
                           }
-                          Err(_) => {
+                          if draining.val {
                             conn.close()
                             break
                           }
                         }
+                        Err(_) => {
+                          conn.close()
+                          break
+                        }
                       }
-                    })
-                  }
+                    }
+                  })
                 }
               }
-            })
-            // Single shutdown waiter
-            wait_for_shutdown_signal(shutdown)
-            server.close()
-            // Main function returns. Accept loop (no_wait) is cancelled.
-            // Group waits for handler tasks (no_wait=false) to finish.
+            }
           })
-        }),
-      )
+          // Inner group done: all handlers have finished
+          handlers_drained.put(())
+        })
+        // Outer main: wait for shutdown, then drain with timeout
+        wait_for_shutdown_signal(shutdown)
+        draining.val = true
+        server.close()
+        // Timeout starts NOW (after shutdown signal, not from boot)
+        @async.any([
+          () => ignore(try? handlers_drained.get()),
+          () => @async.sleep(timeout_ms),
+        ])
+        // Outer main returns → outer group cancels inner (no_wait=true)
+      })
     }
     None =>
       // Default: cancellation-based (abort active requests)
