@@ -46,6 +46,7 @@ pub suberror NativeServeError {
   InvalidMaxRequestBodyBytes(Int)
   InvalidRequestBodyReadTimeoutMs(Int)
   InvalidHandlerTimeoutMs(Int)
+  InvalidShutdownTimeoutMs(Int)
   InvalidWebSocketMaxMessageBytes(Int)
   InvalidWebSocketOutgoingQueueCapacity(Int)
   InvalidWebSocketReadTimeoutMs(Int)
@@ -234,14 +235,15 @@ pub struct NativeServeOptions {
   max_request_body_bytes : Int?
   request_body_read_timeout_ms : Int?
   handler_timeout_ms : Int?
+  shutdown_timeout_ms : Int?
   websocket_outgoing_queue_capacity : Int?
   websocket_overflow_policy : NativeWebSocketOverflowPolicy?
   websocket_read_timeout_ms : Int?
   websocket_max_message_bytes : Int?
 
-  fn new(max_connections? : Int, max_request_body_bytes? : Int, request_body_read_timeout_ms? : Int, handler_timeout_ms? : Int, websocket_outgoing_queue_capacity? : Int, websocket_overflow_policy? : NativeWebSocketOverflowPolicy, websocket_read_timeout_ms? : Int, websocket_max_message_bytes? : Int) -> NativeServeOptions
+  fn new(max_connections? : Int, max_request_body_bytes? : Int, request_body_read_timeout_ms? : Int, handler_timeout_ms? : Int, shutdown_timeout_ms? : Int, websocket_outgoing_queue_capacity? : Int, websocket_overflow_policy? : NativeWebSocketOverflowPolicy, websocket_read_timeout_ms? : Int, websocket_max_message_bytes? : Int) -> NativeServeOptions
 }
-pub fn NativeServeOptions::new(max_connections? : Int, max_request_body_bytes? : Int, request_body_read_timeout_ms? : Int, handler_timeout_ms? : Int, websocket_outgoing_queue_capacity? : Int, websocket_overflow_policy? : NativeWebSocketOverflowPolicy, websocket_read_timeout_ms? : Int, websocket_max_message_bytes? : Int) -> Self
+pub fn NativeServeOptions::new(max_connections? : Int, max_request_body_bytes? : Int, request_body_read_timeout_ms? : Int, handler_timeout_ms? : Int, shutdown_timeout_ms? : Int, websocket_outgoing_queue_capacity? : Int, websocket_overflow_policy? : NativeWebSocketOverflowPolicy, websocket_read_timeout_ms? : Int, websocket_max_message_bytes? : Int) -> Self
 
 pub(all) enum NativeWebSocketOverflowPolicy {
   DropOldest

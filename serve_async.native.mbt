@@ -639,22 +639,11 @@ pub async fn Mocket::serve_on_until(
 ///|
 /// Stop serving when `shutdown` receives a unit or is closed.
 /// `shutdown.put(())` wakes one waiter; `shutdown.close()` broadcasts to all waiters.
-/// Shutdown is cancellation-based: active requests and websocket sessions
-/// are aborted rather than drained to completion.
-/// `max_connections`, if present, limits the number of client connections
-/// handled in parallel by the underlying `@http.Server`.
-/// `max_request_body_bytes`, if present, rejects oversized request bodies
-/// with `413 Request Entity Too Large`.
-/// `request_body_read_timeout_ms`, if present, rejects slow request bodies
-/// with `408 Request Timeout`.
-/// `websocket_max_message_bytes`, if present, closes websocket connections
-/// with `1009 MessageTooBig` when an inbound message exceeds that many bytes.
-/// `websocket_outgoing_queue_capacity`, if present, bounds buffered outbound
-/// websocket messages per connection.
-/// `websocket_overflow_policy`, if present, chooses whether a full outbound
-/// websocket queue drops the oldest or latest message.
-/// `websocket_read_timeout_ms`, if present, closes websocket connections
-/// after that many milliseconds waiting for the next inbound message.
+///
+/// When `shutdown_timeout_ms` is set, shutdown is graceful: the server stops
+/// accepting new connections and waits up to that many milliseconds for
+/// in-flight requests to complete before force-cancelling. When unset,
+/// shutdown is cancellation-based (active requests are aborted immediately).
 pub async fn Mocket::serve_on_until_with(
   self : Mocket,
   server : @http.Server,
@@ -663,10 +652,33 @@ pub async fn Mocket::serve_on_until_with(
 ) -> Unit raise Error {
   let ws_runtime_id = next_ws_serve_runtime_id(self)
   defer cleanup_native_ws_runtime(ws_runtime_id)
-  @async.any([
-    () => run_native_server(self, ws_runtime_id, server, options),
-    () => wait_for_shutdown_signal(shutdown),
-  ])
+  match resolve_native_shutdown_timeout_ms(options) {
+    Some(timeout_ms) =>
+      // Graceful shutdown: stop accepting, drain active requests up to timeout.
+      // 1. Server runs in the background.
+      // 2. On shutdown signal, close the listener (stops accepting).
+      // 3. Wait for active handlers to finish OR hard timeout, whichever first.
+      // 4. Task group exit cancels any remaining work.
+      @async.with_task_group(group => {
+        let server_done : @async.Queue[Unit] = @async.Queue::new(kind=Unbounded)
+        group.spawn_bg(no_wait=true, () => {
+          run_native_server(self, ws_runtime_id, server, options)
+          server_done.put(())
+        })
+        wait_for_shutdown_signal(shutdown)
+        server.close()
+        @async.any([
+          () => ignore(try? server_done.get()),
+          () => @async.sleep(timeout_ms),
+        ])
+      })
+    None =>
+      // Default: cancellation-based (abort active requests)
+      @async.any([
+        () => run_native_server(self, ws_runtime_id, server, options),
+        () => wait_for_shutdown_signal(shutdown),
+      ])
+  }
 }
 
 ///|

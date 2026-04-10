@@ -5,6 +5,7 @@ pub suberror NativeServeError {
   InvalidMaxRequestBodyBytes(Int)
   InvalidRequestBodyReadTimeoutMs(Int)
   InvalidHandlerTimeoutMs(Int)
+  InvalidShutdownTimeoutMs(Int)
   InvalidWebSocketMaxMessageBytes(Int)
   InvalidWebSocketOutgoingQueueCapacity(Int)
   InvalidWebSocketReadTimeoutMs(Int)
@@ -32,6 +33,7 @@ pub struct NativeServeOptions {
   max_request_body_bytes : Int?
   request_body_read_timeout_ms : Int?
   handler_timeout_ms : Int?
+  shutdown_timeout_ms : Int?
   websocket_outgoing_queue_capacity : Int?
   websocket_overflow_policy : NativeWebSocketOverflowPolicy?
   websocket_read_timeout_ms : Int?
@@ -42,6 +44,7 @@ pub struct NativeServeOptions {
     max_request_body_bytes? : Int,
     request_body_read_timeout_ms? : Int,
     handler_timeout_ms? : Int,
+    shutdown_timeout_ms? : Int,
     websocket_outgoing_queue_capacity? : Int,
     websocket_overflow_policy? : NativeWebSocketOverflowPolicy,
     websocket_read_timeout_ms? : Int,
@@ -68,6 +71,7 @@ pub fn NativeServeOptions::new(
   max_request_body_bytes? : Int,
   request_body_read_timeout_ms? : Int,
   handler_timeout_ms? : Int,
+  shutdown_timeout_ms? : Int,
   websocket_outgoing_queue_capacity? : Int,
   websocket_overflow_policy? : NativeWebSocketOverflowPolicy,
   websocket_read_timeout_ms? : Int,
@@ -78,6 +82,7 @@ pub fn NativeServeOptions::new(
     max_request_body_bytes,
     request_body_read_timeout_ms,
     handler_timeout_ms,
+    shutdown_timeout_ms,
     websocket_outgoing_queue_capacity,
     websocket_overflow_policy,
     websocket_read_timeout_ms,
@@ -144,6 +149,21 @@ fn resolve_native_handler_timeout_ms(
         raise NativeServeError::InvalidHandlerTimeoutMs(handler_timeout_ms)
       }
       Some(handler_timeout_ms)
+    }
+    None => None
+  }
+}
+
+///|
+fn resolve_native_shutdown_timeout_ms(
+  options : NativeServeOptions,
+) -> Int? raise Error {
+  match options.shutdown_timeout_ms {
+    Some(shutdown_timeout_ms) => {
+      guard shutdown_timeout_ms > 0 else {
+        raise NativeServeError::InvalidShutdownTimeoutMs(shutdown_timeout_ms)
+      }
+      Some(shutdown_timeout_ms)
     }
     None => None
   }
