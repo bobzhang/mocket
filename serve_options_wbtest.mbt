@@ -119,6 +119,36 @@ test "resolve_native_handler_timeout_ms rejects negative" {
 }
 
 ///|
+test "resolve_native_shutdown_timeout_ms returns None when unset" {
+  let result = resolve_native_shutdown_timeout_ms(NativeServeOptions())
+  inspect(result, content="None")
+}
+
+///|
+test "resolve_native_shutdown_timeout_ms accepts positive value" {
+  let result = resolve_native_shutdown_timeout_ms(
+    NativeServeOptions(shutdown_timeout_ms=5000),
+  )
+  inspect(result, content="Some(5000)")
+}
+
+///|
+test "resolve_native_shutdown_timeout_ms rejects zero" {
+  let result : Result[Int?, Error] = try? resolve_native_shutdown_timeout_ms(
+    NativeServeOptions(shutdown_timeout_ms=0),
+  )
+  inspect(result is Err(_), content="true")
+}
+
+///|
+test "resolve_native_shutdown_timeout_ms rejects negative" {
+  let result : Result[Int?, Error] = try? resolve_native_shutdown_timeout_ms(
+    NativeServeOptions(shutdown_timeout_ms=-1),
+  )
+  inspect(result is Err(_), content="true")
+}
+
+///|
 test "resolve_native_websocket_max_message_bytes returns None when unset" {
   let result = resolve_native_websocket_max_message_bytes(NativeServeOptions())
   inspect(result, content="None")
