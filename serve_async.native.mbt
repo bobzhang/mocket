@@ -533,12 +533,14 @@ async fn handle_request_async(
   }
   match resolve_native_handler_timeout_ms(options) {
     Some(timeout_ms) =>
+      // Timeout wraps only handler execution, not response transmission.
+      // This prevents corrupting an in-flight HTTP response if the timeout fires.
       match
         @async.with_timeout_opt(timeout_ms, () => {
-          let responder = execute_middlewares(app.middlewares, event, handler)
-          send_response_async(request, conn, event.res, responder)
+          execute_middlewares(app.middlewares, event, handler)
         }) {
-        Some(_) => ()
+        Some(responder) =>
+          send_response_async(request, conn, event.res, responder)
         None => send_gateway_timeout_async(request, conn)
       }
     None => {
@@ -653,25 +655,70 @@ pub async fn Mocket::serve_on_until_with(
   let ws_runtime_id = next_ws_serve_runtime_id(self)
   defer cleanup_native_ws_runtime(ws_runtime_id)
   match resolve_native_shutdown_timeout_ms(options) {
-    Some(timeout_ms) =>
-      // Graceful shutdown: stop accepting, drain active requests up to timeout.
-      // 1. Server runs in the background.
-      // 2. On shutdown signal, close the listener (stops accepting).
-      // 3. Wait for active handlers to finish OR hard timeout, whichever first.
-      // 4. Task group exit cancels any remaining work.
-      @async.with_task_group(group => {
-        let server_done : @async.Queue[Unit] = @async.Queue::new(kind=Unbounded)
-        group.spawn_bg(no_wait=true, () => {
-          run_native_server(self, ws_runtime_id, server, options)
-          server_done.put(())
-        })
-        wait_for_shutdown_signal(shutdown)
-        server.close()
-        @async.any([
-          () => ignore(try? server_done.get()),
-          () => @async.sleep(timeout_ms),
-        ])
-      })
+    Some(timeout_ms) => {
+      // Graceful shutdown with manual accept loop:
+      // 1. Accept connections in a loop; each handler runs in a task group.
+      // 2. On shutdown signal, server.close() causes accept() to fail, exiting the loop.
+      // 3. The task group waits for all spawned handlers to complete.
+      // 4. A hard timeout cancels any remaining handlers if drain takes too long.
+      let max_connections = resolve_native_max_connections(options)
+      let sem : @async.Semaphore? = match max_connections {
+        Some(n) => Some(@async.Semaphore::new(n))
+        None => None
+      }
+      @async.any([
+        () => {
+          @async.with_task_group(group => {
+            // Spawn the accept loop in the group so handlers are children
+            group.spawn_bg(no_wait=true, () => {
+              // Accept loop: exits when server.close() causes accept to fail
+              for ;; {
+                let conn_result : Result[
+                  (@http.ServerConnection, @socket.Addr),
+                  Error,
+                ] = try? server.accept()
+                match conn_result {
+                  Err(_) => break // server closed, stop accepting
+                  Ok((conn, _addr)) => {
+                    match sem {
+                      Some(s) => s.acquire()
+                      None => ()
+                    }
+                    group.spawn_bg(no_wait=true, () => {
+                      defer (match sem {
+                        Some(s) => s.release()
+                        None => ()
+                      })
+                      let request_result : Result[@http.Request, Error] = try? conn.read_request()
+                      match request_result {
+                        Ok(request) => {
+                          let body_reader : &@io.Reader = conn
+                          handle_request_async(
+                            self, ws_runtime_id, request, body_reader, conn, options,
+                          ) catch {
+                            _ => ()
+                          }
+                        }
+                        Err(_) => conn.close()
+                      }
+                    })
+                  }
+                }
+              }
+            })
+            // Wait for shutdown signal, then close server
+            wait_for_shutdown_signal(shutdown)
+            server.close()
+            // Task group now waits for all spawned handlers to finish
+          })
+        },
+        // Hard timeout: shutdown signal + drain timeout
+        async fn() {
+          wait_for_shutdown_signal(shutdown)
+          @async.sleep(timeout_ms)
+        },
+      ])
+    }
     None =>
       // Default: cancellation-based (abort active requests)
       @async.any([
