@@ -62,8 +62,8 @@ async test "wrap_error_handler catches unknown error as 500" {
 }
 
 ///|
-async test "wrap_error_handler catches Failure as 500" {
-  let handler = wrap_error_handler(_event => fail("something went wrong"))
+async test "wrap_error_handler catches Failure as 500 with generic message" {
+  let handler = wrap_error_handler(_event => fail("secret db connection string"))
   let event = MocketEvent::{
     req: HttpRequest(Get, "/", {}, raw_body=b""),
     res: HttpResponse(status_code=OK),
@@ -75,7 +75,9 @@ async test "wrap_error_handler catches Failure as 500" {
   let buf = @buffer.new()
   result.output(buf)
   let body = @utf8.decode(buf.contents())
-  assert_true(body.contains("something went wrong"))
+  // Must NOT leak internal error details to clients
+  assert_true(body.contains("Internal Server Error"))
+  assert_false(body.contains("secret db connection string"))
 }
 
 ///|

@@ -26,8 +26,11 @@ fn wrap_error_handler(
         HttpResponse::error(BadRequest, err.to_string())
       // UTF-8 decode failures — the client sent a body that isn't valid UTF-8
       @utf8.Malformed(_) => HttpResponse::error(BadRequest, "invalid UTF-8")
-      // Unknown errors: 500
-      err => HttpResponse::error(InternalServerError, err.to_string())
+      // Unknown errors: 500 — log the real error, return a generic message
+      err => {
+        println("[mocket] unhandled error: \{err}")
+        HttpResponse::error(InternalServerError, "Internal Server Error")
+      }
     }
   }
 }
