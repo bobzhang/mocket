@@ -319,6 +319,18 @@ async fn send_not_found_async(
 }
 
 ///|
+async fn send_gateway_timeout_async(
+  request : @http.Request,
+  conn : @http.ServerConnection,
+) -> Unit raise Error {
+  let response = HttpResponse(status_code=GatewayTimeout).body(
+    "Gateway Timeout",
+  )
+  response.headers.set("Content-Type", "text/plain; charset=utf-8")
+  send_response_and_close_async(request, conn, response)
+}
+
+///|
 fn request_content_length(request : @http.Request) -> Int? {
   match @mhttp.get_header_case_insensitive(request.headers, "content-length") {
     Some(value) => Some(@string.parse_int(value) catch { _ => return None })
@@ -519,8 +531,21 @@ async fn handle_request_async(
     res: HttpResponse(status_code=OK),
     params,
   }
-  let responder = execute_middlewares(app.middlewares, event, handler)
-  send_response_async(request, conn, event.res, responder)
+  match resolve_native_handler_timeout_ms(options) {
+    Some(timeout_ms) =>
+      match
+        @async.with_timeout_opt(timeout_ms, () => {
+          let responder = execute_middlewares(app.middlewares, event, handler)
+          send_response_async(request, conn, event.res, responder)
+        }) {
+        Some(_) => ()
+        None => send_gateway_timeout_async(request, conn)
+      }
+    None => {
+      let responder = execute_middlewares(app.middlewares, event, handler)
+      send_response_async(request, conn, event.res, responder)
+    }
+  }
 }
 
 ///|
@@ -533,6 +558,7 @@ async fn run_native_server(
   let max_connections = resolve_native_max_connections(options)
   let _ = resolve_native_max_request_body_bytes(options)
   let _ = resolve_native_request_body_read_timeout_ms(options)
+  let _ = resolve_native_handler_timeout_ms(options)
   let _ = resolve_native_websocket_max_message_bytes(options)
   let _ = resolve_native_websocket_outgoing_queue_capacity(options)
   let _ = resolve_native_websocket_overflow_policy(options)
