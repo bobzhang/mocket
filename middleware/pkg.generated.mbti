@@ -1,0 +1,22 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "bobzhang/crescent/middleware"
+
+import {
+  "bobzhang/crescent",
+}
+
+// Values
+pub fn rate_limit(requests_per_window~ : Int, window_ms~ : Int) -> async (@crescent.MocketEvent, async () -> &@crescent.Responder noraise) -> &@crescent.Responder noraise
+
+pub fn request_id() -> async (@crescent.MocketEvent, async () -> &@crescent.Responder noraise) -> &@crescent.Responder noraise
+
+pub fn security_headers(hsts? : String, csp? : String, permissions_policy? : String) -> async (@crescent.MocketEvent, async () -> &@crescent.Responder noraise) -> &@crescent.Responder noraise
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+
+// Traits
+

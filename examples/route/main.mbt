@@ -6,7 +6,7 @@ async fn main {
   app
   ..use_middleware(logger_middleware())
   ..use_middleware(@cors.handle_cors())
-  ..use_middleware(@crescent.security_headers())
+  ..use_middleware(@middleware.security_headers())
 
   // Text Response
   ..get("/", _ => "Tadaa!")

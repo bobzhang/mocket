@@ -21,3 +21,10 @@ pub fn[T : @json.FromJson] MocketEvent::try_json(
 ) -> Result[T, String] {
   self.req.try_json()
 }
+
+///|
+/// Returns the request ID for this event, or `None` if the `request_id`
+/// middleware from `bobzhang/crescent/middleware` is not active.
+pub fn MocketEvent::request_id(self : MocketEvent) -> String? {
+  self.req.get_header("X-Request-Id")
+}

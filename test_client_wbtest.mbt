@@ -67,14 +67,21 @@ async test "test client custom not found handler" {
 
 ///|
 async test "test client runs middleware" {
+  // Uses an inline custom middleware rather than a named one from
+  // bobzhang/crescent/middleware — this test verifies that TestClient
+  // dispatches requests through the middleware chain, not that any
+  // particular middleware behaves correctly.
+  let ran : Ref[Bool] = Ref::new(false)
   let app = Mocket()
-  app.use_middleware(security_headers())
+  app.use_middleware((_event, next) => {
+    ran.val = true
+    next()
+  })
   app.get("/test", fn(_) noraise { "ok" })
   let client = TestClient(app)
   let res = client.get("/test")
   assert_eq(res.status, OK)
-  assert_eq(res.headers.get("X-Content-Type-Options"), Some("nosniff"))
-  assert_eq(res.headers.get("X-Frame-Options"), Some("DENY"))
+  assert_eq(ran.val, true)
 }
 
 ///|

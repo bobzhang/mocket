@@ -17,7 +17,7 @@ pub fn security_headers(
   hsts? : String = "",
   csp? : String = "",
   permissions_policy? : String = "",
-) -> Middleware {
+) -> @crescent.Middleware {
   (event, next) => {
     let res = next()
     let h = event.res.headers

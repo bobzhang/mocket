@@ -6,7 +6,10 @@
 ///
 /// - `requests_per_window` — maximum requests allowed per window.
 /// - `window_ms` — window duration in milliseconds.
-pub fn rate_limit(requests_per_window~ : Int, window_ms~ : Int) -> Middleware {
+pub fn rate_limit(
+  requests_per_window~ : Int,
+  window_ms~ : Int,
+) -> @crescent.Middleware {
   let window_start : Ref[Int64] = Ref::new(0L)
   let request_count : Ref[Int] = Ref::new(0)
   (_event, next) => {
@@ -20,7 +23,7 @@ pub fn rate_limit(requests_per_window~ : Int, window_ms~ : Int) -> Middleware {
     if request_count.val > requests_per_window {
       let remaining_ms = window_ms.to_int64() - (now - window_start.val)
       let retry_after = (remaining_ms / 1000L + 1L).to_string()
-      HttpResponse(status_code=TooManyRequests)
+      @crescent.HttpResponse(status_code=TooManyRequests)
       .header("Retry-After", retry_after)
       .body("Too Many Requests")
       .to_responder()

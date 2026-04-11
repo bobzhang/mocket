@@ -17,7 +17,7 @@ fn generate_request_id() -> String {
 ///
 /// If the incoming request already carries an `X-Request-Id` header, its value
 /// is preserved. Otherwise a new opaque hex identifier is generated.
-pub fn request_id() -> Middleware {
+pub fn request_id() -> @crescent.Middleware {
   (event, next) => {
     let id = match event.req.get_header("X-Request-Id") {
       Some(existing) => existing
@@ -30,10 +30,4 @@ pub fn request_id() -> Middleware {
     event.res.headers.set("X-Request-Id", id)
     res
   }
-}
-
-///|
-/// Returns the request ID for this event, or `None` if the middleware is not active.
-pub fn MocketEvent::request_id(self : MocketEvent) -> String? {
-  self.req.get_header("X-Request-Id")
 }

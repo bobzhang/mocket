@@ -111,7 +111,7 @@ fn build_todo_app() -> @crescent.Mocket {
   app.get_raw("/health", fn(_) noraise { "ok" })
 
   // Apply security headers
-  app.use_middleware(@crescent.security_headers())
+  app.use_middleware(@middleware.security_headers())
 
   app
 }

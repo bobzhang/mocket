@@ -146,10 +146,10 @@ fn _build_app() -> @crescent.Mocket {
   let app = @crescent.Mocket()
 
   // Security headers on every response
-  app.use_middleware(@crescent.security_headers())
+  app.use_middleware(@middleware.security_headers())
 
   // Unique request ID for distributed tracing
-  app.use_middleware(@crescent.request_id())
+  app.use_middleware(@middleware.request_id())
 
   // Request logging
   app.use_middleware((event, next) => {
@@ -180,7 +180,7 @@ fn _build_app() -> @crescent.Mocket {
 ///|
 async test "security headers middleware" {
   let app = Mocket::new()
-  app.use_middleware(security_headers())
+  app.use_middleware(@middleware.security_headers())
   app.get_raw("/test", fn(_) noraise { "ok" })
   let client = TestClient::new(app)
   let res = client.get("/test")
@@ -191,7 +191,7 @@ async test "security headers middleware" {
 ///|
 async test "request ID middleware" {
   let app = Mocket::new()
-  app.use_middleware(request_id())
+  app.use_middleware(@middleware.request_id())
   app.get_raw("/test", fn(_) noraise { "ok" })
   let client = TestClient::new(app)
   let res = client.get("/test")
@@ -687,10 +687,13 @@ For custom error responses, use `try_json`:
 
 ## Built-in Middleware
 
+Middleware implementations live in the `bobzhang/crescent/middleware` sub-package.
+
 | Middleware | What it does |
 |-----------|-------------|
-| `security_headers()` | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`, `Referrer-Policy: strict-origin-when-cross-origin` |
-| `request_id()` | Adds `X-Request-Id` header; preserves incoming IDs for distributed tracing. Access via `event.request_id()` |
+| `@middleware.security_headers()` | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`, `Referrer-Policy: strict-origin-when-cross-origin` |
+| `@middleware.request_id()` | Adds `X-Request-Id` header; preserves incoming IDs for distributed tracing. Access via `event.request_id()` |
+| `@middleware.rate_limit(requests_per_window~, window_ms~)` | Fixed-window rate limiter. Returns `429 Too Many Requests` with a `Retry-After` header when the limit is exceeded. |
 | `@cors.handle_cors()` | Full CORS support: preflight `OPTIONS` handling, configurable origins/methods/credentials |
 
 Writing custom middleware:
@@ -760,7 +763,7 @@ test "require_param raises on missing" {
 | `event.req.query_params()` | `Map[String, String]` | All query params, cached |
 | `event.req.path()` | `String` | Path without query string, cached |
 | `event.req.content_type()` | `String?` | Content-Type header value |
-| `event.request_id()` | `String?` | Requires `request_id()` middleware |
+| `event.request_id()` | `String?` | Requires `@middleware.request_id()` middleware |
 
 ```mbt check
 ///|

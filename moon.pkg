@@ -17,6 +17,7 @@ import {
 }
 
 import {
+  "bobzhang/crescent/middleware" @middleware,
   "moonbitlang/async/os_error",
 } for "test"
 
