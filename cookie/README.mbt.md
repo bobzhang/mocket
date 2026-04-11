@@ -7,6 +7,52 @@ Cookies are small pieces of data that web servers send to browsers via
 subsequent requests in the `Cookie` header. They are the standard mechanism for
 session management, user preferences, and tracking across HTTP requests.
 
+## How Cookies Work
+
+Cookies rely on a two-step exchange between server and browser:
+
+**1. Server sets a cookie** — The server includes one or more `Set-Cookie`
+headers in an HTTP response. Each header carries a name-value pair plus optional
+attributes that control the cookie's lifetime, scope, and security:
+
+```
+HTTP/1.1 200 OK
+Set-Cookie: session_id=abc123; Path=/; Max-Age=3600; Secure; HttpOnly; SameSite=Lax
+```
+
+**2. Browser sends it back** — On every subsequent request to the same origin
+(subject to `Path`, `Domain`, and `SameSite` rules), the browser automatically
+attaches all matching cookies in a single `Cookie` header:
+
+```
+GET /api/profile HTTP/1.1
+Cookie: session_id=abc123; theme=dark
+```
+
+The server never sees the attributes (`Path`, `Secure`, etc.) again — the
+browser uses them locally to decide *whether* to send the cookie, but only the
+`name=value` pairs travel back.
+
+### Cookie Attributes
+
+| Attribute  | Purpose |
+| ---------- | ------- |
+| `Max-Age`  | Seconds until the cookie expires. `0` deletes it immediately. |
+| `Path`     | URL path prefix the cookie applies to (default: current path). |
+| `Domain`   | Which hosts receive the cookie (default: exact origin only). |
+| `Secure`   | Only send over HTTPS. |
+| `HttpOnly` | Hide from JavaScript (`document.cookie`), mitigating XSS. |
+| `SameSite` | Controls cross-site sending — see [SameSite Options](#samesite-options). |
+
+### Lifecycle
+
+1. **Session cookies** — no `Max-Age` or `Expires`: deleted when the browser
+   closes.
+2. **Persistent cookies** — have a `Max-Age` (or `Expires`): survive across
+   browser restarts until they expire.
+3. **Deletion** — the server sends `Set-Cookie: name=; Max-Age=0` to ask the
+   browser to remove a cookie.
+
 This package provides:
 
 - `CookieItem` — a typed representation of an HTTP cookie with attributes like
