@@ -10,11 +10,11 @@ pub struct Mocket {
   priv route_keys : Array[(String, String)]
   priv middlewares : Array[(String, Middleware)]
   priv static_routes : Map[String, Map[String, HttpHandler]]
-  priv dynamic_routes : RadixRouter[HttpHandler]
+  priv dynamic_routes : @router.RadixRouter[HttpHandler]
   priv ws_static_routes : Map[String, WebSocketHandler]
   // WebSocket dynamic routes share the radix tree for consistent precedence
   // with HTTP routes. "WS" is used as a synthetic method key.
-  priv ws_dynamic_routes : RadixRouter[WebSocketHandler]
+  priv ws_dynamic_routes : @router.RadixRouter[WebSocketHandler]
   priv ws_runtime_id : String
   priv mut not_found_handler : HttpHandler?
 
@@ -38,9 +38,9 @@ pub fn Mocket::new(base_path? : String = "") -> Mocket {
     route_keys: [],
     middlewares: [],
     static_routes: {},
-    dynamic_routes: RadixRouter::new(),
+    dynamic_routes: @router.RadixRouter::new(),
     ws_static_routes: {},
-    ws_dynamic_routes: RadixRouter::new(),
+    ws_dynamic_routes: @router.RadixRouter::new(),
     ws_runtime_id: next_mocket_instance_id(),
     not_found_handler: None,
   }
@@ -191,7 +191,7 @@ pub fn Mocket::on(
     }
     // Dynamic path: compile and insert into radix tree
   } else {
-    let compiled = CompiledRoute::compile(path)
+    let compiled = @router.CompiledRoute::compile(path)
     self.dynamic_routes.insert(event, compiled, handler)
   }
 }
@@ -364,7 +364,7 @@ pub fn Mocket::ws(
     self.ws_static_routes.set(path, handler)
   } else {
     // Dynamic path: insert into radix tree (WS is a synthetic method key)
-    let compiled = CompiledRoute::compile(path)
+    let compiled = @router.CompiledRoute::compile(path)
     self.ws_dynamic_routes.insert("WS", compiled, handler)
   }
 }

@@ -438,7 +438,7 @@ Matching uses a radix tree — O(path length), not O(number of routes).
 ```mbt check
 ///|
 test "compiled route matching" {
-  let route = CompiledRoute::compile("/users/:id/posts/:postId")
+  let route = @router.CompiledRoute::compile("/users/:id/posts/:postId")
   assert_eq(
     route.match_path("/users/42/posts/99"),
     Some({ "id": "42", "postId": "99" }),
@@ -448,9 +448,9 @@ test "compiled route matching" {
 
 ///|
 test "static routes are flagged" {
-  let static_route = CompiledRoute::compile("/api/health")
+  let static_route = @router.CompiledRoute::compile("/api/health")
   assert_true(static_route.is_static)
-  let dynamic_route = CompiledRoute::compile("/api/:version")
+  let dynamic_route = @router.CompiledRoute::compile("/api/:version")
   assert_true(dynamic_route.is_static == false)
 }
 ```

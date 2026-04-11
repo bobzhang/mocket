@@ -268,7 +268,7 @@ test "find_ws_route miss" {
 
 ///|
 fn match_path(template : String, path : String) -> Map[String, StringView]? {
-  CompiledRoute::compile(template).match_path(path)
+  @router.CompiledRoute::compile(template).match_path(path)
 }
 
 ///|
