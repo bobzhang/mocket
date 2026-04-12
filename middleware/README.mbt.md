@@ -50,9 +50,11 @@ first middleware registered wraps every later one:
 ///|
 async fn main {
   let app = @crescent.Mocket()
-  app.use_middleware(@middleware.request_id())      // outermost: IDs are set first
+  app.use_middleware(@middleware.request_id()) // outermost: IDs are set first
   app.use_middleware(@middleware.security_headers())
-  app.use_middleware(@middleware.rate_limit(requests_per_window=100, window_ms=60000))
+  app.use_middleware(
+    @middleware.rate_limit(requests_per_window=100, window_ms=60000),
+  )
   app.get("/api/data", _ => "hello")
   app.serve(port=4000)
 }
@@ -162,9 +164,11 @@ IDs:
 async test "handler can read the request id via event.request_id()" {
   let app = @crescent.Mocket()
   app.use_middleware(@middleware.request_id())
-  app.get("/whoami", event => match event.request_id() {
-    Some(id) => "id:\{id}"
-    None => "no-id"
+  app.get("/whoami", event => {
+    match event.request_id() {
+      Some(id) => "id:\{id}"
+      None => "no-id"
+    }
   })
   let client = @crescent.TestClient(app)
   let res = client.get("/whoami", headers={ "X-Request-Id": "trace-xyz" })

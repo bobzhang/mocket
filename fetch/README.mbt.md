@@ -102,11 +102,9 @@ request's `Content-Type` is set by whatever `Responder` you pass:
 ///|
 async fn _example_fetch_post_json() -> Unit raise Error {
   let body = @crescent.json({ "title": "Learn MoonBit", "done": false })
-  let _res = @fetch.post(
-    "https://api.example.com/todos",
-    data=body,
-    headers={ "Authorization": "Bearer token" },
-  )
+  let _res = @fetch.post("https://api.example.com/todos", data=body, headers={
+    "Authorization": "Bearer token",
+  })
   ()
 }
 ```
@@ -118,11 +116,9 @@ For `application/x-www-form-urlencoded` bodies, encode the map with
 ///|
 async fn _example_fetch_post_form() -> Unit raise Error {
   let form = @http.form_encode({ "name": "alice", "city": "NYC" })
-  let _res = @fetch.post(
-    "https://api.example.com/signup",
-    data=form,
-    headers={ "Content-Type": "application/x-www-form-urlencoded" },
-  )
+  let _res = @fetch.post("https://api.example.com/signup", data=form, headers={
+    "Content-Type": "application/x-www-form-urlencoded",
+  })
   ()
 }
 ```
@@ -136,11 +132,9 @@ provided:
 ```moonbit nocheck
 ///|
 async fn _example_fetch_custom_content_type() -> Unit raise Error {
-  let _res = @fetch.post(
-    "https://api.example.com/custom",
-    data="raw payload",
-    headers={ "Content-Type": "application/vnd.example.v2+json" },
-  )
+  let _res = @fetch.post("https://api.example.com/custom", data="raw payload", headers={
+    "Content-Type": "application/vnd.example.v2+json",
+  })
   ()
 }
 ```
@@ -163,10 +157,9 @@ async fn _example_fetch_head_delete() -> Unit raise Error {
     return
   }
   // Idempotent delete
-  let _del = @fetch.delete(
-    "https://api.example.com/todos/42",
-    headers={ "Authorization": "Bearer token" },
-  )
+  let _del = @fetch.delete("https://api.example.com/todos/42", headers={
+    "Authorization": "Bearer token",
+  })
   ()
 }
 ```
@@ -199,7 +192,9 @@ test "HttpRequest can be built for @fetch.request" {
 
 ```moonbit nocheck
 ///|
-async fn _example_fetch_request(req : @crescent.HttpRequest) -> Unit raise Error {
+async fn _example_fetch_request(
+  req : @crescent.HttpRequest,
+) -> Unit raise Error {
   let res = @fetch.request(req)
   println(res.status_code)
 }
@@ -252,18 +247,15 @@ application's choice to make. Inspect `res.status_code` explicitly:
 async fn _example_fetch_error_handling() -> Unit raise Error {
   let res = @fetch.get("https://api.example.com/maybe")
   match res.status_code {
-    OK => {
+    OK =>
       // happy path
       ()
-    }
-    NotFound => {
+    NotFound =>
       // resource missing — handle inline
       ()
-    }
-    status => {
+    status =>
       // anything else: log and bail out
       println("unexpected status: \{status}")
-    }
   }
 }
 ```
