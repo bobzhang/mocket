@@ -1,15 +1,14 @@
 name: check
 
 on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
   schedule:
     # Runs at 02:30, only on Friday.
     - cron: "30 2 * * 5"
-  workflow_dispatch:
-  push:
-    branches:
-      - master
-      - main
-  pull_request:
 
 jobs:
   check:
