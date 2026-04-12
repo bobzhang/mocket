@@ -151,7 +151,7 @@ test "parse cookie with attributes" {
 test "serialize multiple cookies" {
   let cookies = [
     @cookie.CookieItem(name="a", value="1"),
-    @cookie.CookieItem(name="b", value="2"),
+    CookieItem(name="b", value="2"),
   ]
   inspect(@cookie.cookie_to_string(cookies), content="a=1;b=2")
 }
