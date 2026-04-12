@@ -170,7 +170,9 @@ changes whenever the file is rewritten or touched:
 ```mbt check
 ///|
 async test "get_meta returns size, path, and etag for a real file" {
-  let provider = @static_file.StaticFileProvider::new(path="static_file/testdata")
+  let provider = @static_file.StaticFileProvider::new(
+    path="static_file/testdata",
+  )
   match provider.get_meta("hello.txt") {
     Some(meta) => {
       assert_eq(meta.size, Some(16L))
@@ -192,7 +194,9 @@ return `None`, which the framework translates into a `404`:
 ```mbt check
 ///|
 async test "get_meta returns None for missing files" {
-  let provider = @static_file.StaticFileProvider::new(path="static_file/testdata")
+  let provider = @static_file.StaticFileProvider::new(
+    path="static_file/testdata",
+  )
   assert_true(provider.get_meta("does_not_exist.txt") is None)
 }
 ```
@@ -263,8 +267,9 @@ pub struct FallthroughProvider {
 }
 
 ///|
-pub impl @crescent.ServeStaticProvider for FallthroughProvider with
-get_fallthrough(_) -> Bool {
+pub impl @crescent.ServeStaticProvider for FallthroughProvider with get_fallthrough(
+  _,
+) -> Bool {
   true
 }
 
