@@ -142,7 +142,7 @@ request closure; for a toy example it's just a `String`:
 ```mbt check
 ///|
 test "radix router dispatches to registered handlers" {
-  let router : @router.RadixRouter[String] = @router.RadixRouter::new()
+  let router : @router.RadixRouter[String] = RadixRouter()
   router.insert(
     "GET",
     @router.CompiledRoute::compile("/api/users"),
@@ -191,7 +191,7 @@ alongside `/users/:id` without ordering gymnastics:
 ```mbt check
 ///|
 test "static paths beat parametric siblings" {
-  let router : @router.RadixRouter[String] = @router.RadixRouter::new()
+  let router : @router.RadixRouter[String] = RadixRouter()
   router.insert("GET", @router.CompiledRoute::compile("/users/:id"), "get_user")
   router.insert(
     "GET",
@@ -220,13 +220,13 @@ sub-router, and the parent merges the results at the end:
 ```mbt check
 ///|
 test "merge folds routes from another router" {
-  let router : @router.RadixRouter[String] = @router.RadixRouter::new()
+  let router : @router.RadixRouter[String] = RadixRouter()
   router.insert(
     "GET",
     @router.CompiledRoute::compile("/api/users/:id"),
     "get_user",
   )
-  let sub : @router.RadixRouter[String] = @router.RadixRouter::new()
+  let sub : @router.RadixRouter[String] = RadixRouter()
   sub.insert(
     "POST",
     @router.CompiledRoute::compile("/api/users"),

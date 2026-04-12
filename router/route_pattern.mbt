@@ -1,6 +1,6 @@
 ///|
 /// A single segment of a pre-compiled route pattern.
-pub(all) enum RouteSegment {
+pub enum RouteSegment {
   /// A literal path segment that must match exactly (e.g. "api", "users")
   Static(String)
   /// A named parameter that captures a single segment (e.g. ":id")
@@ -9,18 +9,18 @@ pub(all) enum RouteSegment {
   Wildcard
   /// A multi-level wildcard that captures zero or more segments (e.g. "**")
   GlobStar
-} derive(Eq)
+} derive(Eq, Debug)
 
 ///|
 /// A pre-compiled route pattern, parsed once at registration time.
 pub struct CompiledRoute {
   /// The original template string (for debugging/display)
-  template : String
+  priv template : String
   /// Pre-parsed segments (avoids re-splitting on every request)
   segments : Array[RouteSegment]
   /// True if the route is static (no parameters or wildcards)
   is_static : Bool
-}
+} derive(Debug)
 
 ///|
 /// Compiles a route template string into a `CompiledRoute`.
@@ -35,7 +35,7 @@ pub fn CompiledRoute::compile(template : String) -> CompiledRoute {
     } else if part == "*" {
       segments.push(Wildcard)
       is_static = false
-    } else if part.view() lexmatch? (":", param_name) {
+    } else if part is [.. ":", .. param_name] {
       segments.push(Param(param_name.to_string()))
       is_static = false
     } else {

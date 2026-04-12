@@ -48,7 +48,7 @@ fn Mocket::new(base_path? : String = "") -> Mocket {
     static_routes: {},
     dynamic_routes: RadixRouter(),
     ws_static_routes: {},
-    ws_dynamic_routes: @router.RadixRouter::new(),
+    ws_dynamic_routes: RadixRouter(),
     ws_runtime_id: next_mocket_instance_id(),
     not_found_handler: None,
   }

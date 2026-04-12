@@ -1,16 +1,20 @@
 // Generated using `moon info`, DON'T EDIT IT
 package "bobzhang/crescent/router"
 
+import {
+  "moonbitlang/core/debug",
+}
+
 // Values
 
 // Errors
 
 // Types and methods
 pub struct CompiledRoute {
-  template : String
   segments : Array[RouteSegment]
   is_static : Bool
-}
+  // private fields
+} derive(@debug.Debug)
 pub fn CompiledRoute::compile(String) -> Self
 pub fn CompiledRoute::match_path(Self, String) -> Map[String, StringView]?
 
@@ -22,15 +26,14 @@ pub struct RadixRouter[T] {
 pub fn[T] RadixRouter::insert(Self[T], String, CompiledRoute, T) -> Unit
 pub fn[T] RadixRouter::is_empty(Self[T]) -> Bool
 pub fn[T] RadixRouter::merge(Self[T], Self[T]) -> Unit
-pub fn[T] RadixRouter::new() -> Self[T]
 pub fn[T] RadixRouter::search(Self[T], String, String) -> (T, Map[String, StringView])?
 
-pub(all) enum RouteSegment {
+pub enum RouteSegment {
   Static(String)
   Param(String)
   Wildcard
   GlobStar
-} derive(Eq)
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

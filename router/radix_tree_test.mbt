@@ -1,6 +1,6 @@
 ///|
 test "radix tree: static routes" {
-  let router : RadixRouter[String] = RadixRouter::new()
+  let router : RadixRouter[String] = RadixRouter()
   router.insert("GET", CompiledRoute::compile("/api/users"), "list_users")
   router.insert("GET", CompiledRoute::compile("/api/posts"), "list_posts")
   match router.search("GET", "/api/users") {
@@ -17,7 +17,7 @@ test "radix tree: static routes" {
 
 ///|
 test "radix tree: param routes" {
-  let router : RadixRouter[String] = RadixRouter::new()
+  let router : RadixRouter[String] = RadixRouter()
   router.insert("GET", CompiledRoute::compile("/users/:id"), "get_user")
   router.insert(
     "GET",
@@ -43,7 +43,7 @@ test "radix tree: param routes" {
 
 ///|
 test "radix tree: wildcard routes" {
-  let router : RadixRouter[String] = RadixRouter::new()
+  let router : RadixRouter[String] = RadixRouter()
   router.insert("GET", CompiledRoute::compile("/files/*"), "get_file")
   match router.search("GET", "/files/readme.txt") {
     Some((handler, params)) => {
@@ -57,7 +57,7 @@ test "radix tree: wildcard routes" {
 
 ///|
 test "radix tree: globstar routes" {
-  let router : RadixRouter[String] = RadixRouter::new()
+  let router : RadixRouter[String] = RadixRouter()
   router.insert("GET", CompiledRoute::compile("/static/**"), "serve_static")
   match router.search("GET", "/static/css/main.css") {
     Some((handler, params)) => {
@@ -73,7 +73,7 @@ test "radix tree: globstar routes" {
 
 ///|
 test "radix tree: mixed static and param on same level" {
-  let router : RadixRouter[String] = RadixRouter::new()
+  let router : RadixRouter[String] = RadixRouter()
   router.insert("GET", CompiledRoute::compile("/users/me"), "current_user")
   router.insert("GET", CompiledRoute::compile("/users/:id"), "get_user")
   // Static should take priority
@@ -90,9 +90,9 @@ test "radix tree: mixed static and param on same level" {
 
 ///|
 test "radix tree: merge routers" {
-  let router1 : RadixRouter[String] = RadixRouter::new()
+  let router1 : RadixRouter[String] = RadixRouter()
   router1.insert("GET", CompiledRoute::compile("/api/users/:id"), "get_user")
-  let router2 : RadixRouter[String] = RadixRouter::new()
+  let router2 : RadixRouter[String] = RadixRouter()
   router2.insert("POST", CompiledRoute::compile("/api/users"), "create_user")
   router1.merge(router2)
   assert_true(router1.search("GET", "/api/users/1") is Some(_))

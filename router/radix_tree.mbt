@@ -217,7 +217,7 @@ pub struct RadixRouter[T] {
 
 ///|
 /// Creates a new empty radix router with no registered routes.
-pub fn[T] RadixRouter::new() -> RadixRouter[T] {
+fn[T] RadixRouter::new() -> RadixRouter[T] {
   { trees: {}, fallback_routes: {} }
 }
 
