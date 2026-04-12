@@ -14,15 +14,15 @@ fn make_event(
 test "origin=* with credentials=true reflects request origin" {
   let event = make_event(Get, { "origin": "https://myapp.com" })
   append_cors_headers(event, origin="*", credentials=true)
-  assert_eq(
-    event.res.headers.get("Access-Control-Allow-Origin"),
-    Some("https://myapp.com"),
-  )
-  assert_eq(
-    event.res.headers.get("Access-Control-Allow-Credentials"),
-    Some("true"),
-  )
-  assert_eq(event.res.headers.get("Vary"), Some("Origin"))
+  guard event.res.headers
+    is {
+      "Access-Control-Allow-Origin": "https://myapp.com",
+      "Access-Control-Allow-Credentials": "true",
+      "Vary": "Origin",
+      ..
+    } else {
+    fail("missing expected CORS response headers")
+  }
 }
 
 ///|
@@ -203,23 +203,17 @@ async test "handle_cors serves preflight requests through async server" {
     })
     assert_eq(response.code, 200)
     assert_eq(body, b"")
-    assert_eq(
-      response.headers.get("access-control-allow-origin"),
-      Some("https://frontend.example"),
-    )
-    assert_eq(
-      response.headers.get("access-control-allow-methods"),
-      Some("GET, PATCH"),
-    )
-    assert_eq(
-      response.headers.get("access-control-allow-headers"),
-      Some("Content-Type, Authorization"),
-    )
-    assert_eq(
-      response.headers.get("access-control-allow-credentials"),
-      Some("true"),
-    )
-    assert_eq(response.headers.get("access-control-max-age"), Some("7200"))
+    guard response.headers
+      is {
+        "access-control-allow-origin": "https://frontend.example",
+        "access-control-allow-methods": "GET, PATCH",
+        "access-control-allow-headers": "Content-Type, Authorization",
+        "access-control-allow-credentials": "true",
+        "access-control-max-age": "7200",
+        ..
+      } else {
+      fail("missing expected preflight CORS headers")
+    }
     inspect(handler_called.val, content="false")
   })
 }
@@ -243,26 +237,17 @@ async test "handle_cors decorates normal requests through async server" {
     })
     assert_eq(response.code, 200)
     assert_eq(@utf8.decode(body) catch { _ => "" }, "ok")
-    assert_eq(
-      response.headers.get("access-control-allow-origin"),
-      Some("https://frontend.example"),
-    )
-    assert_eq(
-      response.headers.get("access-control-allow-methods"),
-      Some("GET, POST"),
-    )
-    assert_eq(
-      response.headers.get("access-control-allow-headers"),
-      Some("Content-Type"),
-    )
-    assert_eq(
-      response.headers.get("access-control-expose-headers"),
-      Some("X-Trace-Id"),
-    )
-    assert_eq(
-      response.headers.get("access-control-allow-credentials"),
-      Some("true"),
-    )
+    guard response.headers
+      is {
+        "access-control-allow-origin": "https://frontend.example",
+        "access-control-allow-methods": "GET, POST",
+        "access-control-allow-headers": "Content-Type",
+        "access-control-expose-headers": "X-Trace-Id",
+        "access-control-allow-credentials": "true",
+        ..
+      } else {
+      fail("missing expected CORS response headers")
+    }
   })
 }
 
@@ -289,26 +274,18 @@ async test "handle_cors does not short-circuit non-preflight options" {
     })
     assert_eq(response.code, 200)
     assert_eq(@utf8.decode(body) catch { _ => "" }, "regular-options")
-    assert_eq(
-      response.headers.get("access-control-allow-origin"),
-      Some("https://frontend.example"),
-    )
-    assert_eq(
-      response.headers.get("access-control-allow-methods"),
-      Some("GET, OPTIONS"),
-    )
-    assert_eq(
-      response.headers.get("access-control-allow-headers"),
-      Some("Content-Type"),
-    )
-    assert_eq(
-      response.headers.get("access-control-expose-headers"),
-      Some("X-Trace-Id"),
-    )
-    assert_eq(
-      response.headers.get("access-control-allow-credentials"),
-      Some("true"),
-    )
+    guard response.headers
+      is {
+        "access-control-allow-origin": "https://frontend.example",
+        "access-control-allow-methods": "GET, OPTIONS",
+        "access-control-allow-headers": "Content-Type",
+        "access-control-expose-headers": "X-Trace-Id",
+        "access-control-allow-credentials": "true",
+        ..
+      } else {
+      fail("missing expected CORS headers on non-preflight OPTIONS")
+    }
+    // non-preflight OPTIONS must NOT carry a preflight-only Max-Age
     assert_eq(response.headers.get("access-control-max-age"), None)
     inspect(handler_called.val, content="true")
   })

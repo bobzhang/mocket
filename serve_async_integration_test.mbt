@@ -2591,8 +2591,12 @@ async test "serve preserves content-encoding for encoded static assets" {
       headers={ "Accept-Encoding": "gzip" },
     )
     assert_eq(head_response.code, 200)
-    assert_eq(head_response.headers.get("content-encoding"), Some("gzip"))
-    assert_eq(head_response.headers.get("content-length"), Some("7"))
+    guard head_response.headers
+      is { "content-encoding": "gzip", "content-length": "7", .. } else {
+      fail(
+        "expected HEAD response to preserve content-encoding and content-length",
+      )
+    }
     assert_eq(head_body, b"")
   }) catch {
     SocketBindUnavailable => return

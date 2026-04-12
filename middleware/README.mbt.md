@@ -132,6 +132,7 @@ async test "request_id adds an opaque hex id" {
   app.get("/hello", _ => "hi")
   let client = @crescent.TestClient(app)
   let res = client.get("/hello")
+  // X-Request-Id changes every request
   assert_true(res.headers.get("X-Request-Id") is Some(_))
 }
 ```
@@ -203,13 +204,16 @@ async test "security_headers sets base headers" {
   app.get("/", _ => "ok")
   let client = @crescent.TestClient(app)
   let res = client.get("/")
-  assert_eq(res.headers.get("X-Content-Type-Options"), Some("nosniff"))
-  assert_eq(res.headers.get("X-Frame-Options"), Some("DENY"))
-  assert_eq(res.headers.get("X-XSS-Protection"), Some("0"))
-  assert_eq(
-    res.headers.get("Referrer-Policy"),
-    Some("strict-origin-when-cross-origin"),
-  )
+  guard res.headers
+    is {
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "X-XSS-Protection": "0",
+      "Referrer-Policy": "strict-origin-when-cross-origin",
+      ..
+    } else {
+    fail("missing expected base security headers")
+  }
 }
 ```
 
@@ -239,18 +243,15 @@ async test "security_headers with opt-in policy headers" {
   app.get("/", _ => "ok")
   let client = @crescent.TestClient(app)
   let res = client.get("/")
-  assert_eq(
-    res.headers.get("Strict-Transport-Security"),
-    Some("max-age=31536000; includeSubDomains"),
-  )
-  assert_eq(
-    res.headers.get("Content-Security-Policy"),
-    Some("default-src 'self'"),
-  )
-  assert_eq(
-    res.headers.get("Permissions-Policy"),
-    Some("camera=(), microphone=()"),
-  )
+  guard res.headers
+    is {
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+      "Content-Security-Policy": "default-src 'self'",
+      "Permissions-Policy": "camera=(), microphone=()",
+      ..
+    } else {
+    fail("missing expected security headers")
+  }
 }
 ```
 
@@ -274,11 +275,14 @@ async test "handler-set headers override middleware defaults" {
   })
   let client = @crescent.TestClient(app)
   let res = client.get("/embed")
-  assert_eq(
-    res.headers.get("Content-Security-Policy"),
-    Some("default-src 'none'"),
-  )
-  assert_eq(res.headers.get("X-Frame-Options"), Some("SAMEORIGIN"))
+  guard res.headers
+    is {
+      "Content-Security-Policy": "default-src 'none'",
+      "X-Frame-Options": "SAMEORIGIN",
+      ..
+    } else {
+    fail("expected handler-set headers to win over middleware defaults")
+  }
 }
 ```
 
