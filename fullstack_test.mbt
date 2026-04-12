@@ -195,8 +195,10 @@ async test "full-stack: create todo with wrong schema returns 400" {
 async test "full-stack: security headers applied to all responses" {
   let client = @crescent.TestClient(build_todo_app())
   let res = client.get("/api/todos")
-  assert_eq(res.headers.get("X-Content-Type-Options"), Some("nosniff"))
-  assert_eq(res.headers.get("X-Frame-Options"), Some("DENY"))
+  guard res.headers
+    is { "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", .. } else {
+    fail("missing expected security headers")
+  }
 }
 
 ///|

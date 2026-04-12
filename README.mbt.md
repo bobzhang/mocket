@@ -184,8 +184,10 @@ async test "security headers middleware" {
   app.get_raw("/test", fn(_) noraise { "ok" })
   let client = TestClient::new(app)
   let res = client.get("/test")
-  assert_eq(res.headers.get("X-Content-Type-Options"), Some("nosniff"))
-  assert_eq(res.headers.get("X-Frame-Options"), Some("DENY"))
+  guard res.headers
+    is { "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", .. } else {
+    fail("missing expected security headers")
+  }
 }
 
 ///|
@@ -641,8 +643,10 @@ test "fluent response building" {
   let res = HttpResponse::ok()
     .header("X-Custom", "value")
     .header("Cache-Control", "max-age=3600")
-  assert_eq(res.headers.get("X-Custom"), Some("value"))
-  assert_eq(res.headers.get("Cache-Control"), Some("max-age=3600"))
+  guard res.headers
+    is { "X-Custom": "value", "Cache-Control": "max-age=3600", .. } else {
+    fail("expected fluent headers to be set")
+  }
 }
 
 ///|
