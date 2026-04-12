@@ -192,11 +192,7 @@ alongside `/users/:id` without ordering gymnastics:
 ///|
 test "static paths beat parametric siblings" {
   let router : @router.RadixRouter[String] = @router.RadixRouter::new()
-  router.insert(
-    "GET",
-    @router.CompiledRoute::compile("/users/:id"),
-    "get_user",
-  )
+  router.insert("GET", @router.CompiledRoute::compile("/users/:id"), "get_user")
   router.insert(
     "GET",
     @router.CompiledRoute::compile("/users/me"),

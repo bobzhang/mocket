@@ -63,10 +63,7 @@ test "get_header_case_insensitive tolerates any casing" {
     @http.get_header_case_insensitive(headers, "CONTENT-TYPE"),
     Some("application/json"),
   )
-  assert_eq(
-    @http.get_header_case_insensitive(headers, "Accept"),
-    None,
-  )
+  assert_eq(@http.get_header_case_insensitive(headers, "Accept"), None)
 }
 ```
 
@@ -198,10 +195,7 @@ deviation returns `None` rather than trying to guess. This matters for
 ```mbt check
 ///|
 test "parse_http_date rejects invalid input" {
-  assert_eq(
-    @http.parse_http_date("Thu, 01 Jan 1970 00:00:00 GMT"),
-    Some(0L),
-  )
+  assert_eq(@http.parse_http_date("Thu, 01 Jan 1970 00:00:00 GMT"), Some(0L))
   // 31 Feb is not a real day
   assert_eq(@http.parse_http_date("Thu, 31 Feb 2024 00:00:00 GMT"), None)
   // random garbage
@@ -308,10 +302,7 @@ test "request_target_query_string separates the query" {
   // no query
   assert_eq(@http.request_target_query_string("/"), None)
   // fragment after query is stripped
-  assert_eq(
-    @http.request_target_query_string("/a?x=1#frag"),
-    Some("x=1"),
-  )
+  assert_eq(@http.request_target_query_string("/a?x=1#frag"), Some("x=1"))
 }
 ```
 
