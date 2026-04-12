@@ -14,8 +14,9 @@ pub struct CompiledRoute {
   segments : Array[RouteSegment]
   is_static : Bool
   // private fields
+
+  fn new(String) -> CompiledRoute
 } derive(@debug.Debug)
-pub fn CompiledRoute::compile(String) -> Self
 pub fn CompiledRoute::match_path(Self, String) -> Map[String, StringView]?
 
 pub struct RadixRouter[T] {

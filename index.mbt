@@ -83,7 +83,7 @@ pub fn Mocket::on(
     }
     // Dynamic path: compile and insert into radix tree
   } else {
-    let compiled = @router.CompiledRoute::compile(path)
+    let compiled = @router.CompiledRoute(path)
     self.dynamic_routes.insert(event, compiled, handler)
   }
 }
@@ -256,7 +256,7 @@ pub fn Mocket::ws(
     self.ws_static_routes.set(path, handler)
   } else {
     // Dynamic path: insert into radix tree (WS is a synthetic method key)
-    let compiled = @router.CompiledRoute::compile(path)
+    let compiled = @router.CompiledRoute(path)
     self.ws_dynamic_routes.insert("WS", compiled, handler)
   }
 }

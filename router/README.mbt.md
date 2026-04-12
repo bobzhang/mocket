@@ -12,12 +12,12 @@ drop it in without pulling in the rest of the framework.
 
 A route is a template string with three kinds of interesting segments:
 
-| Syntax | Kind | Matches | Captured as |
-| ------ | ---- | ------- | ----------- |
-| `/users` | **Static** | the exact literal | — |
-| `/users/:id` | **Named parameter** | any one segment | `params["id"]` |
-| `/files/*` | **Single-segment wildcard** | any one segment | `params["_"]` |
-| `/static/**` | **Globstar (multi-segment)** | zero or more segments, joined by `/` | `params["_"]` |
+| Syntax       | Kind                         | Matches                              | Captured as    |
+| ------------ | ---------------------------- | ------------------------------------ | -------------- |
+| `/users`     | **Static**                   | the exact literal                    | —              |
+| `/users/:id` | **Named parameter**          | any one segment                      | `params["id"]` |
+| `/files/*`   | **Single-segment wildcard**  | any one segment                      | `params["_"]`  |
+| `/static/**` | **Globstar (multi-segment)** | zero or more segments, joined by `/` | `params["_"]`  |
 
 At registration time each template is parsed once into a `CompiledRoute`:
 the segments are split, classified, and stored as an array of
@@ -62,7 +62,7 @@ import {
 
 ## Compiling and Matching a Single Route
 
-`CompiledRoute::compile` parses a template string into an array of
+`@router.CompiledRoute(template)` parses a template string into an array of
 `RouteSegment` values. For static templates (no parameters, no wildcards)
 the `is_static` flag is set so `match_path` can fall back to a single
 string comparison — faster than walking the segment array.
@@ -70,7 +70,7 @@ string comparison — faster than walking the segment array.
 ```mbt check
 ///|
 test "static compiled route" {
-  let route = @router.CompiledRoute::compile("/api/health")
+  let route = @router.CompiledRoute("/api/health")
   assert_true(route.is_static)
   assert_eq(route.match_path("/api/health"), Some({}))
   assert_eq(route.match_path("/api/other"), None)
@@ -83,14 +83,10 @@ as a `StringView` into the original path — no allocation per match:
 ```mbt check
 ///|
 test "compiled route captures named parameters" {
-  let route = @router.CompiledRoute::compile("/users/:userId/posts/:postId")
+  let route = @router.CompiledRoute("/users/:userId/posts/:postId")
   let params = route.match_path("/users/42/posts/7")
-  match params {
-    Some(p) => {
-      assert_eq(p.get("userId").map(StringView::to_string), Some("42"))
-      assert_eq(p.get("postId").map(StringView::to_string), Some("7"))
-    }
-    None => fail("expected match")
+  guard params is Some({ "userId": "42", "postId": "7", .. }) else {
+    fail("expected match")
   }
 }
 ```
@@ -103,7 +99,7 @@ paths fall through:
 ```mbt check
 ///|
 test "wildcard matches a single segment" {
-  let route = @router.CompiledRoute::compile("/files/*")
+  let route = @router.CompiledRoute("/files/*")
   // one segment — matches
   let ok = route.match_path("/files/readme.txt")
   assert_true(ok is Some(_))
@@ -118,7 +114,7 @@ remainder under the reserved key `"_"`:
 ```mbt check
 ///|
 test "globstar captures remaining segments" {
-  let route = @router.CompiledRoute::compile("/static/**")
+  let route = @router.CompiledRoute("/static/**")
   let params = route.match_path("/static/css/main.css")
   match params {
     Some(p) =>
@@ -143,21 +139,9 @@ request closure; for a toy example it's just a `String`:
 ///|
 test "radix router dispatches to registered handlers" {
   let router : @router.RadixRouter[String] = RadixRouter()
-  router.insert(
-    "GET",
-    @router.CompiledRoute::compile("/api/users"),
-    "list_users",
-  )
-  router.insert(
-    "GET",
-    @router.CompiledRoute::compile("/api/users/:id"),
-    "get_user",
-  )
-  router.insert(
-    "POST",
-    @router.CompiledRoute::compile("/api/users"),
-    "create_user",
-  )
+  router.insert("GET", @router.CompiledRoute("/api/users"), "list_users")
+  router.insert("GET", @router.CompiledRoute("/api/users/:id"), "get_user")
+  router.insert("POST", @router.CompiledRoute("/api/users"), "create_user")
 
   // GET /api/users — static match
   match router.search("GET", "/api/users") {
@@ -192,12 +176,8 @@ alongside `/users/:id` without ordering gymnastics:
 ///|
 test "static paths beat parametric siblings" {
   let router : @router.RadixRouter[String] = RadixRouter()
-  router.insert("GET", @router.CompiledRoute::compile("/users/:id"), "get_user")
-  router.insert(
-    "GET",
-    @router.CompiledRoute::compile("/users/me"),
-    "current_user",
-  )
+  router.insert("GET", @router.CompiledRoute("/users/:id"), "get_user")
+  router.insert("GET", @router.CompiledRoute("/users/me"), "current_user")
   // "me" is a literal match even though :id would also fit
   match router.search("GET", "/users/me") {
     Some((h, _)) => assert_eq(h, "current_user")
@@ -221,17 +201,9 @@ sub-router, and the parent merges the results at the end:
 ///|
 test "merge folds routes from another router" {
   let router : @router.RadixRouter[String] = RadixRouter()
-  router.insert(
-    "GET",
-    @router.CompiledRoute::compile("/api/users/:id"),
-    "get_user",
-  )
+  router.insert("GET", @router.CompiledRoute("/api/users/:id"), "get_user")
   let sub : @router.RadixRouter[String] = RadixRouter()
-  sub.insert(
-    "POST",
-    @router.CompiledRoute::compile("/api/users"),
-    "create_user",
-  )
+  sub.insert("POST", @router.CompiledRoute("/api/users"), "create_user")
   router.merge(sub)
   assert_true(router.search("GET", "/api/users/1") is Some(_))
   assert_true(router.search("POST", "/api/users") is Some(_))
@@ -243,7 +215,7 @@ so a caller can override routes from a sub-router after the merge.
 
 ## Parameter Name Conflicts
 
-Two templates that take the *same* tree position but assign it different
+Two templates that take the _same_ tree position but assign it different
 parameter names (e.g. `/users/:id` and `/users/:name`) would otherwise make
 parameter extraction ambiguous. At insertion time the router detects this
 and emits a warning to stdout — the first name wins, and you should rename
@@ -264,7 +236,7 @@ is genuinely painful to track down at runtime.
   slices into the request path, not fresh `String` values. Convert to
   `String` with `.to_string()` only when you need to hand the value off to
   code that demands ownership.
-- **Patterns like `/files/**/meta`** (a globstar followed by further
+- **Patterns like `/files/**/meta`\*\* (a globstar followed by further
   segments) cannot fit in the radix tree and fall through to a per-method
   linear-scan fallback. These are rare; everything else stays on the fast
   path.
