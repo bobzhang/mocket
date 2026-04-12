@@ -30,41 +30,31 @@ test "parse_cookie" {
 test "parse_cookie_with_attributes" {
   let cookie_str = "session_id=12345; Path=/; Domain=example.com; Max-Age=3600; Secure; HttpOnly; SameSite=Lax"
   let cookies = parse_cookie(cookie_str)
-  match cookies.get("session_id") {
-    Some(item) => {
-      assert_eq(item.value, "12345")
-      assert_eq(item.path, Some("/"))
-      assert_eq(item.domain, Some("example.com"))
-      assert_eq(item.max_age, Some(3600))
-      assert_eq(item.secure, Some(true))
-      assert_eq(item.http_only, Some(true))
-      assert_eq(item.same_site, Some(Lax))
-    }
-    None => fail("Expected session_id cookie")
+  guard cookies.get("session_id") is Some(item) else {
+    fail("Expected session_id cookie")
   }
+  assert_eq(item.value, "12345")
+  assert_eq(item.path, Some("/"))
+  assert_eq(item.domain, Some("example.com"))
+  assert_eq(item.max_age, Some(3600))
+  assert_eq(item.secure, Some(true))
+  assert_eq(item.http_only, Some(true))
+  assert_eq(item.same_site, Some(Lax))
 }
 
 ///|
 test "parse_cookie_multiple_with_attributes" {
   let cookie_str = "c1=v1; Path=/app; c2=v2; Secure; SameSite=Strict"
   let cookies = parse_cookie(cookie_str)
-  match cookies.get("c1") {
-    Some(item) => {
-      assert_eq(item.value, "v1")
-      assert_eq(item.path, Some("/app"))
-      assert_eq(item.secure, None) // Should not have secure
-    }
-    None => fail("Expected c1")
-  }
-  match cookies.get("c2") {
-    Some(item) => {
-      assert_eq(item.value, "v2")
-      assert_eq(item.secure, Some(true))
-      assert_eq(item.same_site, Some(Strict))
-      assert_eq(item.path, None) // Should not have path
-    }
-    None => fail("Expected c2")
-  }
+  guard cookies.get("c1") is Some(c1) else { fail("Expected c1") }
+  assert_eq(c1.value, "v1")
+  assert_eq(c1.path, Some("/app"))
+  assert_eq(c1.secure, None)
+  guard cookies.get("c2") is Some(c2) else { fail("Expected c2") }
+  assert_eq(c2.value, "v2")
+  assert_eq(c2.secure, Some(true))
+  assert_eq(c2.same_site, Some(Strict))
+  assert_eq(c2.path, None)
 }
 
 ///|
@@ -147,11 +137,9 @@ test "cookie_to_string joins cookies and invalid max-age falls back to none" {
   )
 
   let parsed = parse_cookie("session=abc123; Max-Age=oops")
-  match parsed.get("session") {
-    Some(cookie) => {
-      assert_eq(cookie.value, "abc123")
-      assert_eq(cookie.max_age, None)
-    }
-    None => fail("Expected parsed session cookie")
+  guard parsed.get("session") is Some(cookie) else {
+    fail("Expected parsed session cookie")
   }
+  assert_eq(cookie.value, "abc123")
+  assert_eq(cookie.max_age, None)
 }

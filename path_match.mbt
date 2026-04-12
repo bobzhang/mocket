@@ -47,9 +47,9 @@ test "find_route_for_method misses wrong method" {
 test "find_route_for_method dynamic route extracts params" {
   let app = Mocket()
   app.get("/users/:id", fn(_event) noraise { "user" })
-  match app.find_route_for_method("GET", "/users/123") {
-    Some((_, params)) => inspect(params, content="{\"id\": \"123\"}")
-    None => fail("expected route match")
+  guard app.find_route_for_method("GET", "/users/123")
+    is Some((_, { "id": "123", .. })) else {
+    fail("expected route match")
   }
 }
 
@@ -57,10 +57,9 @@ test "find_route_for_method dynamic route extracts params" {
 test "find_route_for_method dynamic route with multiple params" {
   let app = Mocket()
   app.get("/users/:userId/posts/:postId", fn(_event) noraise { "user_post" })
-  match app.find_route_for_method("GET", "/users/42/posts/99") {
-    Some((_, params)) =>
-      inspect(params, content="{\"userId\": \"42\", \"postId\": \"99\"}")
-    None => fail("expected route match")
+  guard app.find_route_for_method("GET", "/users/42/posts/99")
+    is Some((_, { "userId": "42", "postId": "99", .. })) else {
+    fail("expected route match")
   }
 }
 
@@ -231,9 +230,8 @@ test "find_route returns None when no route matches" {
 test "find_route wildcard dynamic route with params" {
   let app = Mocket()
   app.all_raw("/items/:id", fn(_event) noraise { "item" })
-  match app.find_route("PATCH", "/items/77") {
-    Some((_, params)) => inspect(params, content="{\"id\": \"77\"}")
-    None => fail("expected wildcard dynamic route match")
+  guard app.find_route("PATCH", "/items/77") is Some((_, { "id": "77", .. })) else {
+    fail("expected wildcard dynamic route match")
   }
 }
 
@@ -266,10 +264,8 @@ test "find_ws_route dynamic hit" {
 test "find_ws_route extracts params from dynamic path" {
   let app = Mocket()
   app.ws("/ws/:room", fn(_event) {  })
-  match app.find_ws_route("/ws/lobby") {
-    Some((_, params)) =>
-      assert_eq(params.get("room").map(StringView::to_string), Some("lobby"))
-    None => fail("expected route match")
+  guard app.find_ws_route("/ws/lobby") is Some((_, { "room": "lobby", .. })) else {
+    fail("expected route match")
   }
 }
 
@@ -277,12 +273,9 @@ test "find_ws_route extracts params from dynamic path" {
 test "find_ws_route extracts multiple params" {
   let app = Mocket()
   app.ws("/ws/:room/user/:id", fn(_event) {  })
-  match app.find_ws_route("/ws/lobby/user/42") {
-    Some((_, params)) => {
-      assert_eq(params.get("room").map(StringView::to_string), Some("lobby"))
-      assert_eq(params.get("id").map(StringView::to_string), Some("42"))
-    }
-    None => fail("expected route match")
+  guard app.find_ws_route("/ws/lobby/user/42")
+    is Some((_, { "room": "lobby", "id": "42", .. })) else {
+    fail("expected route match")
   }
 }
 
@@ -290,9 +283,8 @@ test "find_ws_route extracts multiple params" {
 test "find_ws_route static returns empty params" {
   let app = Mocket()
   app.ws("/ws", fn(_event) {  })
-  match app.find_ws_route("/ws") {
-    Some((_, params)) => assert_eq(params.length(), 0)
-    None => fail("expected route match")
+  guard app.find_ws_route("/ws") is Some((_, params)) && params.is_empty() else {
+    fail("expected route match with empty params")
   }
 }
 
@@ -305,13 +297,11 @@ test "find_ws_route duplicate path overrides handler" {
   let app = Mocket()
   app.ws("/ws/:room", fn(_event) { calls.push("first") })
   app.ws("/ws/:room", fn(_event) { calls.push("second") })
-  match app.find_ws_route("/ws/lobby") {
-    Some((handler, _)) => {
-      handler(Open(WebSocketPeer(connection_id="test")))
-      assert_eq(calls, ["second"])
-    }
-    None => fail("expected route match")
+  guard app.find_ws_route("/ws/lobby") is Some((handler, _)) else {
+    fail("expected route match")
   }
+  handler(Open(WebSocketPeer(connection_id="test")))
+  assert_eq(calls, ["second"])
 }
 
 ///|
@@ -322,14 +312,12 @@ test "find_ws_route static beats param" {
   let app = Mocket()
   app.ws("/ws/:room", fn(_event) { calls.push("param") })
   app.ws("/ws/lobby", fn(_event) { calls.push("static") })
-  match app.find_ws_route("/ws/lobby") {
-    Some((handler, _)) => {
-      handler(Open(WebSocketPeer(connection_id="test")))
-      // Static routes are stored separately and checked first
-      assert_eq(calls, ["static"])
-    }
-    None => fail("expected route match")
+  guard app.find_ws_route("/ws/lobby") is Some((handler, _)) else {
+    fail("expected route match")
   }
+  handler(Open(WebSocketPeer(connection_id="test")))
+  // Static routes are stored separately and checked first
+  assert_eq(calls, ["static"])
 }
 
 ///|
@@ -339,13 +327,11 @@ test "find_ws_route param beats wildcard" {
   let app = Mocket()
   app.ws("/ws/*", fn(_event) { calls.push("wildcard") })
   app.ws("/ws/:room", fn(_event) { calls.push("param") })
-  match app.find_ws_route("/ws/lobby") {
-    Some((handler, _)) => {
-      handler(Open(WebSocketPeer(connection_id="test")))
-      assert_eq(calls, ["param"])
-    }
-    None => fail("expected route match")
+  guard app.find_ws_route("/ws/lobby") is Some((handler, _)) else {
+    fail("expected route match")
   }
+  handler(Open(WebSocketPeer(connection_id="test")))
+  assert_eq(calls, ["param"])
 }
 
 ///|

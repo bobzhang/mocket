@@ -168,18 +168,14 @@ changes whenever the file is rewritten or touched:
 ///|
 async test "get_meta returns size, path, and etag for a real file" {
   let provider = @static_file.StaticFileProvider(path="static_file/testdata")
-  match provider.get_meta("hello.txt") {
-    Some(meta) => {
-      assert_eq(meta.size, Some(16L))
-      assert_true(meta.etag is Some(_))
-      // path is canonicalized (absolute), so check the suffix
-      match meta.path {
-        Some(p) => assert_true(p.has_suffix("static_file/testdata/hello.txt"))
-        None => fail("expected meta.path")
-      }
-    }
-    None => fail("expected metadata for hello.txt")
+  guard provider.get_meta("hello.txt") is Some(meta) else {
+    fail("expected metadata for hello.txt")
   }
+  assert_eq(meta.size, Some(16L))
+  assert_true(meta.etag is Some(_))
+  // path is canonicalized (absolute), so check the suffix
+  guard meta.path is Some(p) else { fail("expected meta.path") }
+  assert_true(p.has_suffix("static_file/testdata/hello.txt"))
 }
 ```
 

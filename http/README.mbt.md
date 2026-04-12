@@ -226,25 +226,19 @@ test "parse_multipart extracts fields and files" {
   let parts = @http.parse_multipart(bytes[:], "B")
 
   // Simple text field
-  let field1 = @http.first_multipart_value(parts, "field1")
-  match field1 {
-    Some(v) => {
-      assert_eq(v.filename, None)
-      assert_eq(@utf8.decode(v.data) catch { _ => "" }, "hello")
-    }
-    None => fail("expected field1")
+  guard @http.first_multipart_value(parts, "field1") is Some(field1) else {
+    fail("expected field1")
   }
+  assert_eq(field1.filename, None)
+  assert_eq(@utf8.decode(field1.data) catch { _ => "" }, "hello")
 
   // File upload
-  let avatar = @http.first_multipart_value(parts, "avatar")
-  match avatar {
-    Some(v) => {
-      assert_eq(v.filename, Some("a.png"))
-      assert_eq(v.content_type, Some("image/png"))
-      assert_eq(@utf8.decode(v.data) catch { _ => "" }, "PNGDATA")
-    }
-    None => fail("expected avatar")
+  guard @http.first_multipart_value(parts, "avatar") is Some(avatar) else {
+    fail("expected avatar")
   }
+  assert_eq(avatar.filename, Some("a.png"))
+  assert_eq(avatar.content_type, Some("image/png"))
+  assert_eq(@utf8.decode(avatar.data) catch { _ => "" }, "PNGDATA")
 }
 ```
 

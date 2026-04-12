@@ -130,15 +130,11 @@ test "parse cookie with attributes" {
   let cookies = @cookie.parse_cookie(
     "token=xyz; Path=/api; Secure; HttpOnly; SameSite=Strict",
   )
-  match cookies.get("token") {
-    Some(c) => {
-      assert_eq(c.path, Some("/api"))
-      assert_eq(c.secure, Some(true))
-      assert_eq(c.http_only, Some(true))
-      assert_eq(c.same_site, Some(Strict))
-    }
-    None => fail("expected token cookie")
-  }
+  guard cookies.get("token") is Some(c) else { fail("expected token cookie") }
+  assert_eq(c.path, Some("/api"))
+  assert_eq(c.secure, Some(true))
+  assert_eq(c.http_only, Some(true))
+  assert_eq(c.same_site, Some(Strict))
 }
 ```
 

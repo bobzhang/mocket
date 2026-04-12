@@ -76,14 +76,10 @@ test "parse a full http URL" {
   assert_eq(uri.path, ["path", "to", "resource"])
   assert_eq(uri.query, Some("q=hello"))
   assert_eq(uri.fragment, Some("frag"))
-  match uri.authority {
-    Some(auth) => {
-      assert_true(auth.host is RegName("example.com"))
-      assert_eq(auth.port, None)
-      assert_eq(auth.userinfo, None)
-    }
-    None => fail("expected authority")
-  }
+  guard uri.authority is Some(auth) else { fail("expected authority") }
+  assert_true(auth.host is RegName("example.com"))
+  assert_eq(auth.port, None)
+  assert_eq(auth.userinfo, None)
 }
 ```
 
@@ -99,14 +95,10 @@ so the IPv6-vs-reg-name distinction is never lost:
 ///|
 test "parse authority with userinfo and port" {
   let uri = @uri.Uri::parse("ftp://admin:secret@files.example.com:2121/pub")
-  match uri.authority {
-    Some(auth) => {
-      assert_eq(auth.userinfo, Some("admin:secret"))
-      assert_true(auth.host is RegName("files.example.com"))
-      assert_eq(auth.port, Some(2121))
-    }
-    None => fail("expected authority")
-  }
+  guard uri.authority is Some(auth) else { fail("expected authority") }
+  assert_eq(auth.userinfo, Some("admin:secret"))
+  assert_true(auth.host is RegName("files.example.com"))
+  assert_eq(auth.port, Some(2121))
   assert_eq(uri.path, ["pub"])
 }
 ```
@@ -122,13 +114,9 @@ branch on the variant without any string inspection:
 ///|
 test "parse an IPv6 literal host" {
   let uri = @uri.Uri::parse("http://[2001:db8::1]:8080/api")
-  match uri.authority {
-    Some(auth) => {
-      assert_true(auth.host is IPv6Address("2001:db8::1"))
-      assert_eq(auth.port, Some(8080))
-    }
-    None => fail("expected authority")
-  }
+  guard uri.authority is Some(auth) else { fail("expected authority") }
+  assert_true(auth.host is IPv6Address("2001:db8::1"))
+  assert_eq(auth.port, Some(8080))
 }
 ```
 
