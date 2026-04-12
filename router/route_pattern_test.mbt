@@ -63,3 +63,60 @@ test "compiled route: segments are pre-parsed" {
   assert_true(route.segments[2] is Param(_))
   assert_true(route.segments[4] is Param(_))
 }
+
+///|
+fn match_path(template : String, path : String) -> Map[String, StringView]? {
+  CompiledRoute::compile(template).match_path(path)
+}
+
+///|
+test "compiled route: middle wildcard" {
+  // `/api/*/status` — wildcard between static segments
+  assert_eq(match_path("/api/*/status", "/api/v1/status"), Some({ "_": "v1" }))
+}
+
+///|
+test "compiled route: rejects deep path against single wildcard" {
+  // `*` is single-segment, so multi-segment paths must not match
+  assert_eq(match_path("/files/*", "/files/docs/readme.txt"), None)
+}
+
+///|
+test "compiled route: globstar with empty trailing path" {
+  // `/api/v1/**` should match `/api/v1/` with empty captured suffix
+  assert_eq(match_path("/api/v1/**", "/api/v1/"), Some({ "_": "" }))
+}
+
+///|
+test "compiled route: globstar between static segments" {
+  // `/files/**/meta` — globstar in the middle, ending with a literal segment
+  assert_eq(
+    match_path("/files/**/meta", "/files/a/b/meta"),
+    Some({ "_": "a/b" }),
+  )
+  assert_eq(match_path("/files/**/meta", "/files/a/b/raw"), None)
+}
+
+///|
+test "compiled route: param then globstar" {
+  let result = match_path(
+    "/projects/:projectId/**", "/projects/abc/src/main.mbt",
+  )
+  assert_eq(result, Some({ "projectId": "abc", "_": "src/main.mbt" }))
+}
+
+///|
+test "compiled route: template length mismatch with path" {
+  // Template shorter than path (no wildcard)
+  assert_eq(match_path("/api", "/api/users"), None)
+  // Path shorter than template
+  assert_eq(match_path("/api/users", "/api"), None)
+}
+
+///|
+test "compiled route: special chars in parameter capture verbatim" {
+  assert_eq(
+    match_path("/search/:query", "/search/hello%20world"),
+    Some({ "query": "hello%20world" }),
+  )
+}
