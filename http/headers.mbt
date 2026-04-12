@@ -25,6 +25,32 @@ fn header_name_matches(left : String, right : String) -> Bool {
   true
 }
 
+///|
+test "header_name_matches exact match" {
+  assert_eq(header_name_matches("Content-Type", "Content-Type"), true)
+  assert_eq(header_name_matches("host", "host"), true)
+}
+
+///|
+test "header_name_matches case insensitive" {
+  assert_eq(header_name_matches("Content-Type", "content-type"), true)
+  assert_eq(header_name_matches("HOST", "host"), true)
+  assert_eq(header_name_matches("Accept-Encoding", "ACCEPT-ENCODING"), true)
+}
+
+///|
+test "header_name_matches non-matching" {
+  assert_eq(header_name_matches("Content-Type", "Accept"), false)
+  assert_eq(header_name_matches("Host", "Hos"), false)
+  assert_eq(header_name_matches("", "Host"), false)
+  assert_eq(header_name_matches("Host", ""), false)
+}
+
+///|
+test "header_name_matches empty strings" {
+  assert_eq(header_name_matches("", ""), true)
+}
+
 /// Returns the original key from the headers map that matches the given header name
 /// case-insensitively, or `None` if no match is found.
 
@@ -40,6 +66,36 @@ fn find_header_key_case_insensitive(
     }
   }
   None
+}
+
+///|
+test "find_header_key_case_insensitive finds exact key" {
+  let headers : Map[String, String] = { "Content-Type": "text/html" }
+  inspect(
+    find_header_key_case_insensitive(headers, "Content-Type"),
+    content="Some(\"Content-Type\")",
+  )
+}
+
+///|
+test "find_header_key_case_insensitive finds key case-insensitively" {
+  let headers : Map[String, String] = { "Content-Type": "text/html" }
+  inspect(
+    find_header_key_case_insensitive(headers, "content-type"),
+    content="Some(\"Content-Type\")",
+  )
+}
+
+///|
+test "find_header_key_case_insensitive returns None for missing key" {
+  let headers : Map[String, String] = { "Content-Type": "text/html" }
+  inspect(find_header_key_case_insensitive(headers, "Accept"), content="None")
+}
+
+///|
+test "find_header_key_case_insensitive empty map" {
+  let headers : Map[String, String] = {}
+  inspect(find_header_key_case_insensitive(headers, "Host"), content="None")
 }
 
 ///|
