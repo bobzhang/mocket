@@ -1,0 +1,11 @@
+import {
+  "bobzhang/crescent/http" @mhttp,
+  "bobzhang/crescent/cookie" @cookie,
+  "moonbitlang/core/json",
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/encoding/utf8",
+  "moonbitlang/core/strconv",
+  "moonbitlang/core/string",
+}
+
+warnings = "+missing_doc+unnecessary_annotation"

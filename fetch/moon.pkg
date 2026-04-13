@@ -1,5 +1,5 @@
 import {
-  "bobzhang/crescent",
+  "bobzhang/crescent/core" @core,
   "bobzhang/crescent/uri" @uri,
   "bobzhang/crescent/http" @mhttp,
   "moonbitlang/async/http",

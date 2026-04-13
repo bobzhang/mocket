@@ -1,4 +1,5 @@
 import {
+  "bobzhang/crescent/core" @core,
   "bobzhang/crescent/http" @mhttp,
   "bobzhang/crescent/router" @router,
   "bobzhang/crescent/cookie" @cookie,

@@ -22,7 +22,7 @@ fn FetchProtocol::scheme(self : FetchProtocol) -> String {
 
 ///|
 fn request_method_to_async(
-  http_method : @crescent.HttpMethod,
+  http_method : @core.HttpMethod,
 ) -> @http.RequestMethod raise Error {
   match http_method {
     Get => Get
@@ -222,7 +222,7 @@ fn fetch_origin(protocol : FetchProtocol, host : String, port : Int) -> String {
 ///|
 fn prepare_fetch_payload_bytes(
   body : String?,
-  data : &@crescent.Responder?,
+  data : &@core.Responder?,
   headers : Map[String, String]?,
 ) -> (Bytes?, Map[String, String]) {
   let req_headers = @mhttp.copy_headers(headers.unwrap_or({}))
@@ -231,7 +231,7 @@ fn prepare_fetch_payload_bytes(
     None =>
       match data {
         Some(responder_data) => {
-          let res = @crescent.HttpResponse(status_code=OK)
+          let res = @core.HttpResponse(status_code=OK)
           responder_data.options(res)
           res.headers.each((key, value) => {
             if !@mhttp.has_header_case_insensitive(req_headers, key) {
@@ -258,12 +258,12 @@ fn prepare_fetch_payload_bytes(
 pub async fn fetch(
   url : String,
   body? : String,
-  http_method : @crescent.HttpMethod,
-  data? : &@crescent.Responder,
+  http_method : @core.HttpMethod,
+  data? : &@core.Responder,
   headers? : Map[String, String],
   credentials? : FetchCredentials,
   mode? : FetchMode,
-) -> @crescent.HttpResponse raise Error {
+) -> @core.HttpResponse raise Error {
   ignore(credentials)
   ignore(mode)
   let (req_body, req_headers) = prepare_fetch_payload_bytes(body, data, headers)
@@ -290,7 +290,7 @@ pub async fn fetch(
       err => raise FetchError::RequestFailed("\{err}")
     }
   HttpResponse(
-    status_code=@crescent.StatusCode::from_int(response.code),
+    status_code=@core.StatusCode::from_int(response.code),
     headers=@mhttp.copy_headers(response.headers),
     raw_body=response_body,
   )

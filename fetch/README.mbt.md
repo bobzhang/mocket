@@ -7,7 +7,7 @@ for full control.
 ```moonbit check
 ///|
 #warnings("-unused_value")
-async fn load_profile() -> @crescent.HttpResponse {
+async fn load_profile() -> @core.HttpResponse {
   @fetch.get("https://api.example.com/me", headers={
     "Authorization": "Bearer eyJ...",
   })
@@ -20,7 +20,7 @@ positional argument:
 ```moonbit check
 ///|
 #warnings("-unused_value")
-async fn load_profile_raw() -> @crescent.HttpResponse {
+async fn load_profile_raw() -> @core.HttpResponse {
   @fetch.fetch("https://api.example.com/me", Get, headers={
     "Authorization": "Bearer eyJ...",
   })
@@ -36,7 +36,7 @@ through a variable.
 Every HTTP method defined in RFC 9110 has a matching function. All of them
 share the same signature (`url`, optional `data`, optional `headers`,
 optional `credentials`, optional `mode`) and return an
-`@crescent.HttpResponse`:
+`@core.HttpResponse`:
 
 | Function | Method | Typical use |
 | -------- | ------ | ----------- |
@@ -164,7 +164,7 @@ async fn example_fetch_head_delete() -> Unit {
 
 ## `@fetch.request(req)` — Pre-Built Requests
 
-`request` takes a fully constructed `@crescent.HttpRequest` and sends it.
+`request` takes a fully constructed `@core.HttpRequest` and sends it.
 Use this when the method is dynamic, when you're forwarding a request from
 another source (e.g. a proxy), or when you want a single code path to
 handle the request-building logic.
@@ -174,7 +174,7 @@ handle the request-building logic.
 test "HttpRequest can be built for @fetch.request" {
   // Build the request data structure independent of any network call.
   // Later: `@fetch.request(req)` would send it and return the response.
-  let req = @crescent.HttpRequest(
+  let req = @core.HttpRequest(
     Post,
     "https://api.example.com/todos",
     { "Authorization": "Bearer token", "Content-Type": "application/json" },
@@ -191,7 +191,7 @@ test "HttpRequest can be built for @fetch.request" {
 ```moonbit check
 ///|
 #warnings("-unused_value")
-async fn example_fetch_request(req : @crescent.HttpRequest) -> Unit {
+async fn example_fetch_request(req : @core.HttpRequest) -> Unit {
   let res = @fetch.request(req)
   println(res.status_code)
 }

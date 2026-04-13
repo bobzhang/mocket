@@ -2,32 +2,32 @@
 package "bobzhang/crescent/fetch"
 
 import {
-  "bobzhang/crescent",
+  "bobzhang/crescent/core",
   "moonbitlang/core/debug",
 }
 
 // Values
-pub async fn connect(String, data? : &@crescent.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @crescent.HttpResponse
+pub async fn connect(String, data? : &@core.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @core.HttpResponse
 
-pub async fn delete(String, data? : &@crescent.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @crescent.HttpResponse
+pub async fn delete(String, data? : &@core.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @core.HttpResponse
 
-pub async fn fetch(String, body? : String, @crescent.HttpMethod, data? : &@crescent.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @crescent.HttpResponse
+pub async fn fetch(String, body? : String, @core.HttpMethod, data? : &@core.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @core.HttpResponse
 
-pub async fn get(String, data? : &@crescent.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @crescent.HttpResponse
+pub async fn get(String, data? : &@core.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @core.HttpResponse
 
-pub async fn head(String, data? : &@crescent.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @crescent.HttpResponse
+pub async fn head(String, data? : &@core.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @core.HttpResponse
 
-pub async fn options(String, data? : &@crescent.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @crescent.HttpResponse
+pub async fn options(String, data? : &@core.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @core.HttpResponse
 
-pub async fn patch(String, data? : &@crescent.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @crescent.HttpResponse
+pub async fn patch(String, data? : &@core.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @core.HttpResponse
 
-pub async fn post(String, data? : &@crescent.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @crescent.HttpResponse
+pub async fn post(String, data? : &@core.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @core.HttpResponse
 
-pub async fn put(String, data? : &@crescent.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @crescent.HttpResponse
+pub async fn put(String, data? : &@core.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @core.HttpResponse
 
-pub async fn request(@crescent.HttpRequest) -> @crescent.HttpResponse
+pub async fn request(@core.HttpRequest) -> @core.HttpResponse
 
-pub async fn trace(String, data? : &@crescent.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @crescent.HttpResponse
+pub async fn trace(String, data? : &@core.Responder, headers? : Map[String, String], credentials? : FetchCredentials, mode? : FetchMode) -> @core.HttpResponse
 
 // Errors
 pub suberror FetchError {

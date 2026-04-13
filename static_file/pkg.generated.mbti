@@ -3,6 +3,7 @@ package "bobzhang/crescent/static_file"
 
 import {
   "bobzhang/crescent",
+  "bobzhang/crescent/core",
 }
 
 // Values

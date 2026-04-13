@@ -1,9 +1,7 @@
 ///|
 /// Sends an HTTP request using the method, URL, headers, and body from the given
 /// `HttpRequest` object, and returns the response.
-pub async fn request(
-  req : @crescent.HttpRequest,
-) -> @crescent.HttpResponse raise Error {
+pub async fn request(req : @core.HttpRequest) -> @core.HttpResponse raise Error {
   let http_method = req.http_method
   if req.raw_body.length() == 0 {
     fetch(req.url, http_method, headers=req.headers)
@@ -18,11 +16,11 @@ pub async fn request(
 /// credentials, and mode settings.
 pub async fn get(
   url : String,
-  data? : &@crescent.Responder,
+  data? : &@core.Responder,
   headers? : Map[String, String],
   credentials? : FetchCredentials,
   mode? : FetchMode,
-) -> @crescent.HttpResponse raise Error {
+) -> @core.HttpResponse raise Error {
   fetch(url, Get, data?, headers?, credentials?, mode?)
 }
 
@@ -31,11 +29,11 @@ pub async fn get(
 /// credentials, and mode settings.
 pub async fn delete(
   url : String,
-  data? : &@crescent.Responder,
+  data? : &@core.Responder,
   headers? : Map[String, String],
   credentials? : FetchCredentials,
   mode? : FetchMode,
-) -> @crescent.HttpResponse raise Error {
+) -> @core.HttpResponse raise Error {
   fetch(url, Delete, data?, headers?, credentials?, mode?)
 }
 
@@ -44,11 +42,11 @@ pub async fn delete(
 /// credentials, and mode settings.
 pub async fn head(
   url : String,
-  data? : &@crescent.Responder,
+  data? : &@core.Responder,
   headers? : Map[String, String],
   credentials? : FetchCredentials,
   mode? : FetchMode,
-) -> @crescent.HttpResponse raise Error {
+) -> @core.HttpResponse raise Error {
   fetch(url, Head, data?, headers?, credentials?, mode?)
 }
 
@@ -57,11 +55,11 @@ pub async fn head(
 /// credentials, and mode settings.
 pub async fn options(
   url : String,
-  data? : &@crescent.Responder,
+  data? : &@core.Responder,
   headers? : Map[String, String],
   credentials? : FetchCredentials,
   mode? : FetchMode,
-) -> @crescent.HttpResponse raise Error {
+) -> @core.HttpResponse raise Error {
   fetch(url, Options, data?, headers?, credentials?, mode?)
 }
 
@@ -70,11 +68,11 @@ pub async fn options(
 /// credentials, and mode settings.
 pub async fn trace(
   url : String,
-  data? : &@crescent.Responder,
+  data? : &@core.Responder,
   headers? : Map[String, String],
   credentials? : FetchCredentials,
   mode? : FetchMode,
-) -> @crescent.HttpResponse raise Error {
+) -> @core.HttpResponse raise Error {
   fetch(url, Trace, data?, headers?, credentials?, mode?)
 }
 
@@ -83,11 +81,11 @@ pub async fn trace(
 /// credentials, and mode settings.
 pub async fn connect(
   url : String,
-  data? : &@crescent.Responder,
+  data? : &@core.Responder,
   headers? : Map[String, String],
   credentials? : FetchCredentials,
   mode? : FetchMode,
-) -> @crescent.HttpResponse raise Error {
+) -> @core.HttpResponse raise Error {
   fetch(url, Connect, data?, headers?, credentials?, mode?)
 }
 
@@ -96,11 +94,11 @@ pub async fn connect(
 /// credentials, and mode settings.
 pub async fn post(
   url : String,
-  data? : &@crescent.Responder,
+  data? : &@core.Responder,
   headers? : Map[String, String],
   credentials? : FetchCredentials,
   mode? : FetchMode,
-) -> @crescent.HttpResponse raise Error {
+) -> @core.HttpResponse raise Error {
   fetch(url, Post, data?, headers?, credentials?, mode?)
 }
 
@@ -109,11 +107,11 @@ pub async fn post(
 /// credentials, and mode settings.
 pub async fn put(
   url : String,
-  data? : &@crescent.Responder,
+  data? : &@core.Responder,
   headers? : Map[String, String],
   credentials? : FetchCredentials,
   mode? : FetchMode,
-) -> @crescent.HttpResponse raise Error {
+) -> @core.HttpResponse raise Error {
   fetch(url, Put, data?, headers?, credentials?, mode?)
 }
 
@@ -122,10 +120,10 @@ pub async fn put(
 /// credentials, and mode settings.
 pub async fn patch(
   url : String,
-  data? : &@crescent.Responder,
+  data? : &@core.Responder,
   headers? : Map[String, String],
   credentials? : FetchCredentials,
   mode? : FetchMode,
-) -> @crescent.HttpResponse raise Error {
+) -> @core.HttpResponse raise Error {
   fetch(url, Patch, data?, headers?, credentials?, mode?)
 }
