@@ -4,9 +4,10 @@ An HTTP client package that mirrors the browser `fetch` API: one function
 per HTTP verb, plus a generic `fetch` entry point and a `request` function
 for full control.
 
-```moonbit nocheck
+```moonbit check
 ///|
-async fn load_profile() -> @crescent.HttpResponse raise Error {
+#warnings("-unused_value")
+async fn load_profile() -> @crescent.HttpResponse {
   @fetch.get("https://api.example.com/me", headers={
     "Authorization": "Bearer eyJ...",
   })
@@ -16,9 +17,10 @@ async fn load_profile() -> @crescent.HttpResponse raise Error {
 Contrast that with the raw entry point, which takes the method as a
 positional argument:
 
-```moonbit nocheck
+```moonbit check
 ///|
-async fn load_profile_raw() -> @crescent.HttpResponse raise Error {
+#warnings("-unused_value")
+async fn load_profile_raw() -> @crescent.HttpResponse {
   @fetch.fetch("https://api.example.com/me", Get, headers={
     "Authorization": "Bearer eyJ...",
   })
@@ -64,27 +66,27 @@ import {
 
 A plain GET with no body is the most common shape:
 
-```moonbit nocheck
+```moonbit check
 ///|
-async fn _example_fetch_get() -> Unit raise Error {
+#warnings("-unused_value")
+async fn example_fetch_get() -> Unit {
   let res = @fetch.get("https://api.example.com/users/42")
-  let user : User = res.body()
-  println(user.name)
+  let _user : String = res.read_body()
 }
 ```
 
 ### Query strings
 
 There is no dedicated query-parameter helper — build the URL yourself.
-Combine `@http.url_encode` with string concatenation for single-value
-queries, or `@http.form_encode` for maps:
+Combine `@mhttp.url_encode` with string concatenation for single-value
+queries, or `@mhttp.form_encode` for maps:
 
-```moonbit nocheck
+```moonbit check
 ///|
-async fn _example_fetch_search() -> Unit raise Error {
-  let q = @http.url_encode("hello world")
+#warnings("-unused_value")
+async fn example_fetch_search() -> Unit {
+  let q = @mhttp.url_encode("hello world")
   let _res = @fetch.get("https://api.example.com/search?q=\{q}")
-  ()
 }
 ```
 
@@ -94,28 +96,28 @@ Pass the body as `data`. Anything implementing the `&Responder` trait works
 — strings, byte sequences, JSON values, or a pre-built `HttpResponse`. The
 request's `Content-Type` is set by whatever `Responder` you pass:
 
-```moonbit nocheck
+```moonbit check
 ///|
-async fn _example_fetch_post_json() -> Unit raise Error {
-  let body = @crescent.json({ "title": "Learn MoonBit", "done": false })
+#warnings("-unused_value")
+async fn example_fetch_post_json() -> Unit {
+  let body : Json = { "title": "Learn MoonBit", "done": false }
   let _res = @fetch.post("https://api.example.com/todos", data=body, headers={
     "Authorization": "Bearer token",
   })
-  ()
 }
 ```
 
 For `application/x-www-form-urlencoded` bodies, encode the map with
-`@http.form_encode` and set the content type explicitly:
+`@mhttp.form_encode` and set the content type explicitly:
 
-```moonbit nocheck
+```moonbit check
 ///|
-async fn _example_fetch_post_form() -> Unit raise Error {
-  let form = @http.form_encode({ "name": "alice", "city": "NYC" })
+#warnings("-unused_value")
+async fn example_fetch_post_form() -> Unit {
+  let form = @mhttp.form_encode({ "name": "alice", "city": "NYC" })
   let _res = @fetch.post("https://api.example.com/signup", data=form, headers={
     "Content-Type": "application/x-www-form-urlencoded",
   })
-  ()
 }
 ```
 
@@ -125,13 +127,13 @@ If you set `Content-Type` in `headers`, the fetch client leaves it alone —
 it never appends a second `Content-Type` header or overrides the one you
 provided:
 
-```moonbit nocheck
+```moonbit check
 ///|
-async fn _example_fetch_custom_content_type() -> Unit raise Error {
+#warnings("-unused_value")
+async fn example_fetch_custom_content_type() -> Unit {
   let _res = @fetch.post("https://api.example.com/custom", data="raw payload", headers={
     "Content-Type": "application/vnd.example.v2+json",
   })
-  ()
 }
 ```
 
@@ -144,9 +146,10 @@ would silently lose information.
 `HEAD` and `DELETE` take the same options as `GET`. Most of the time the
 body is empty:
 
-```moonbit nocheck
+```moonbit check
 ///|
-async fn _example_fetch_head_delete() -> Unit raise Error {
+#warnings("-unused_value")
+async fn example_fetch_head_delete() -> Unit {
   // Probe for existence without downloading the body
   let head_res = @fetch.head("https://api.example.com/assets/logo.png")
   if head_res.status_code == NotFound {
@@ -156,7 +159,6 @@ async fn _example_fetch_head_delete() -> Unit raise Error {
   let _del = @fetch.delete("https://api.example.com/todos/42", headers={
     "Authorization": "Bearer token",
   })
-  ()
 }
 ```
 
@@ -186,11 +188,10 @@ test "HttpRequest can be built for @fetch.request" {
 }
 ```
 
-```moonbit nocheck
+```moonbit check
 ///|
-async fn _example_fetch_request(
-  req : @crescent.HttpRequest,
-) -> Unit raise Error {
+#warnings("-unused_value")
+async fn example_fetch_request(req : @crescent.HttpRequest) -> Unit {
   let res = @fetch.request(req)
   println(res.status_code)
 }
@@ -238,9 +239,10 @@ scheme, or a DNS lookup failure. The returned `HttpResponse` is **not**
 automatically downgraded to an error for 4xx/5xx statuses — that is your
 application's choice to make. Inspect `res.status_code` explicitly:
 
-```moonbit nocheck
+```moonbit check
 ///|
-async fn _example_fetch_error_handling() -> Unit raise Error {
+#warnings("-unused_value")
+async fn example_fetch_error_handling() -> Unit {
   let res = @fetch.get("https://api.example.com/maybe")
   match res.status_code {
     OK =>
@@ -264,7 +266,7 @@ propagation — no need to unwrap the status into an exception.
 
 When a handler wants to call out to another service, the cleanest approach
 is to extract the fetch call behind a function value and swap in a stub
-during tests. The `TestClient` dispatches *into* a Mocket — it doesn't
+during tests. The `TestClient` dispatches _into_ a Mocket — it doesn't
 mock `fetch` itself — so for unit tests that hit an external API, inject a
 test double rather than intercepting the network.
 
