@@ -41,27 +41,19 @@ fn request_method_to_async(
 /// Converts a BytesView (from the uri package) to a String by UTF-8 decoding.
 
 ///|
-fn bytesview_to_string(bv : BytesView) -> String raise Error {
-  @utf8.decode(Bytes::from_iter(bv.iter())) catch {
-    _ => raise FetchError::RequestFailed("non-UTF-8 URL component")
-  }
-}
-
-///|
 fn resolve_fetch_url(
   url : String,
 ) -> (FetchProtocol, String, Int, String) raise Error {
   // Parse the URL using the proper RFC 3986 parser from the uri package.
-  let parsed = @uri.Uri::parse(@utf8.encode(url)[:]) catch {
+  let parsed = @uri.Uri::parse(url) catch {
     _ => raise FetchError::RequestFailed("invalid URL: \{url}")
   }
 
   // Extract and validate scheme (must be http or https).
-  let scheme_bv = match parsed.scheme {
-    Some(s) => s
+  let scheme = match parsed.scheme {
+    Some(s) => s.to_lower()
     None => raise FetchError::RequestFailed("invalid URL: \{url} (no scheme)")
   }
-  let scheme = bytesview_to_string(scheme_bv).to_lower()
   let protocol = match scheme {
     "http" => Http
     "https" => Https
@@ -87,8 +79,8 @@ fn resolve_fetch_url(
   // Extract host: IPv6 literals need to be wrapped in brackets for the
   // HTTP Host header and URL reconstruction.
   let host = match authority.host {
-    IPv6Address(addr) => "[" + bytesview_to_string(addr) + "]"
-    RegName(name) => bytesview_to_string(name)
+    IPv6Address(addr) => "[\{addr}]"
+    RegName(name) => name.to_string()
   }
   guard host != "" && host != "[]" else {
     raise FetchError::RequestFailed("invalid URL: \{url} (empty host)")
@@ -106,18 +98,17 @@ fn resolve_fetch_url(
   }
 
   // Reconstruct the request path from segments and query.
-  // The path segments array always has a leading empty segment for "/".
   let path_buf = StringBuilder::new()
   for seg in parsed.path {
     path_buf.write_string("/")
-    path_buf.write_string(bytesview_to_string(seg))
+    path_buf.write_view(seg)
   }
   let mut path_str = path_buf.to_string()
   if path_str == "" {
     path_str = "/"
   }
   match parsed.query {
-    Some(q) => path_str = path_str + "?" + bytesview_to_string(q)
+    Some(q) => path_str = path_str + "?" + q.to_string()
     None => ()
   }
   (protocol, host, port, path_str)

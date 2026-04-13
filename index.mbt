@@ -30,7 +30,7 @@ pub struct Mocket {
 }
 
 ///|
-let mocket_instance_counter : Ref[Int] = Ref::new(0)
+let mocket_instance_counter : Ref[Int] = Ref(0)
 
 ///|
 fn next_mocket_instance_id() -> String {

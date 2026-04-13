@@ -36,20 +36,20 @@ is a valid URI-reference (scheme and authority are `None`, path is
 
 ## Design Notes
 
-**Zero-copy.** All of `Uri`'s string-valued fields are `BytesView` slices
+**Zero-copy.** All of `Uri`'s string-valued fields are `StringView` slices
 into the original input. `Uri::parse` does not allocate a new string for
 any component — it records offset ranges. This matters at HTTP server
 scale, where every request parses a fresh URI.
 
 **Percent-encoding is preserved.** The parser does *not* decode `%20` into
 a space or `%E4%BD%A0` into `你`. The returned path segments, query, and
-fragment contain the original bytes verbatim. If you need decoded text,
+fragment contain the original characters verbatim. If you need decoded text,
 run it through `@http.url_decode` after pulling the slice out. Why?
 Because decoding loses information — `/foo%2Fbar` (one segment containing a
 slash) and `/foo/bar` (two segments) are meaningfully different.
 
 **Segment boundaries are recorded, not split.** The `path` field is an
-`Array[BytesView]`, one entry per path segment. Empty segments from
+`Array[StringView]`, one entry per path segment. Empty segments from
 trailing slashes are dropped (`/a/b/` parses to `["a", "b"]`).
 
 ## Install
@@ -65,7 +65,7 @@ import {
 
 ## Parsing a Full URI
 
-`Uri::parse` takes a `BytesView` and returns a fully populated `Uri`, or
+`Uri::parse` takes a `StringView` and returns a fully populated `Uri`, or
 raises a `ParseError` if the input does not conform to the RFC 3986 grammar.
 
 ```mbt check
@@ -198,7 +198,7 @@ test "invalid percent-encoding is rejected" {
 ## Errors
 
 `ParseError` tells you *what* went wrong and *where* it happened (the
-`BytesView` payload is a slice of the remaining input at the point of
+`StringView` payload is a slice of the remaining input at the point of
 failure, which is useful for error reporting).
 
 | Variant | Meaning |
@@ -233,7 +233,7 @@ test "ParseError surfaces as a Result" {
 
 - **No URL building / serialization.** `Uri` has no `to_string()`. If you
   need to construct URLs, use a buffer and `@http.url_encode`.
-- **No percent decoding.** Use `@http.url_decode` on the `BytesView`
+- **No percent decoding.** Use `@http.url_decode` on the `StringView`
   slices once you're ready to consume them as text.
 - **No reference resolution.** Relative references like `../foo` are
   parsed verbatim; applying them to a base URI (the §5.3 algorithm) is
