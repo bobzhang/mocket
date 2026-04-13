@@ -97,9 +97,9 @@ async fn execute_middleware_chain(
   } else {
     // Execute current middleware
     let current_middleware = middlewares[index]
-    let next = async fn() noraise {
+    let next = MiddlewareNext(() => {
       execute_middleware_chain(middlewares, index + 1, event, final_handler)
-    }
+    })
     current_middleware(event, next)
   }
 }
@@ -111,7 +111,7 @@ async test "empty middleware list calls final handler directly" {
     res: HttpResponse(status_code=OK),
     params: {},
   }
-  let handler : HttpHandler = fn(_event) noraise { "handler-result" }
+  let handler : HttpHandler = _ => "handler-result"
   let result = execute_middlewares([], event, handler)
   let buf = @buffer.new()
   result.output(buf)
@@ -121,7 +121,7 @@ async test "empty middleware list calls final handler directly" {
 ///|
 async test "single middleware wraps final handler" {
   let order : Array[String] = []
-  let mw : Middleware = async fn(_event, next) noraise {
+  let mw : Middleware = (_event, next) => {
     order.push("mw-before")
     let result = next()
     order.push("mw-after")
@@ -132,7 +132,7 @@ async test "single middleware wraps final handler" {
     res: HttpResponse(status_code=OK),
     params: {},
   }
-  let handler : HttpHandler = fn(_event) noraise {
+  let handler : HttpHandler = _ => {
     order.push("handler")
     "done"
   }
@@ -149,13 +149,13 @@ async test "single middleware wraps final handler" {
 ///|
 async test "multiple middlewares execute in onion model order" {
   let order : Array[String] = []
-  let mw1 : Middleware = async fn(_event, next) noraise {
+  let mw1 : Middleware = (_event, next) => {
     order.push("mw1-before")
     let result = next()
     order.push("mw1-after")
     result
   }
-  let mw2 : Middleware = async fn(_event, next) noraise {
+  let mw2 : Middleware = (_event, next) => {
     order.push("mw2-before")
     let result = next()
     order.push("mw2-after")
@@ -166,7 +166,7 @@ async test "multiple middlewares execute in onion model order" {
     res: HttpResponse(status_code=OK),
     params: {},
   }
-  let handler : HttpHandler = fn(_event) noraise {
+  let handler : HttpHandler = _ => {
     order.push("handler")
     "done"
   }
@@ -183,7 +183,7 @@ async test "multiple middlewares execute in onion model order" {
 ///|
 async test "path-scoped middleware skips non-matching request" {
   let order : Array[String] = []
-  let mw : Middleware = async fn(_event, next) noraise {
+  let mw : Middleware = (_event, next) => {
     order.push("api-mw")
     next()
   }
@@ -192,7 +192,7 @@ async test "path-scoped middleware skips non-matching request" {
     res: HttpResponse(status_code=OK),
     params: {},
   }
-  let handler : HttpHandler = fn(_event) noraise {
+  let handler : HttpHandler = _ => {
     order.push("handler")
     "done"
   }
@@ -209,7 +209,7 @@ async test "path-scoped middleware skips non-matching request" {
 ///|
 async test "path-scoped middleware executes for matching request" {
   let order : Array[String] = []
-  let mw : Middleware = async fn(_event, next) noraise {
+  let mw : Middleware = (_event, next) => {
     order.push("api-mw")
     next()
   }
@@ -218,7 +218,7 @@ async test "path-scoped middleware executes for matching request" {
     res: HttpResponse(status_code=OK),
     params: {},
   }
-  let handler : HttpHandler = fn(_event) noraise {
+  let handler : HttpHandler = _ => {
     order.push("handler")
     "done"
   }

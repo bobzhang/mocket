@@ -1,7 +1,7 @@
 ///|
 async test "test client GET returns text" {
   let app = @crescent.Mocket()
-  app.get("/hello", fn(_) noraise { "Hello!" })
+  app.get("/hello", _ => "Hello!")
   let client = @crescent.TestClient(app)
   let res = client.get("/hello")
   assert_eq(res.status, OK)
@@ -11,7 +11,7 @@ async test "test client GET returns text" {
 ///|
 async test "test client GET returns json" {
   let app = @crescent.Mocket()
-  app.get("/data", fn(_) noraise { ({ "key": "value" } : Json) })
+  app.get("/data", _ => ({ "key": "value" } : Json))
   let client = @crescent.TestClient(app)
   let res = client.get("/data")
   assert_eq(res.status, OK)
@@ -24,7 +24,7 @@ async test "test client GET returns json" {
 ///|
 async test "test client POST with body" {
   let app = @crescent.Mocket()
-  app.post("/echo", fn(event) noraise {
+  app.post("/echo", event => {
     let text : String = event.req.body() catch { _ => "error" }
     text
   })
@@ -37,7 +37,7 @@ async test "test client POST with body" {
 ///|
 async test "test client route params" {
   let app = @crescent.Mocket()
-  app.get("/users/:id", fn(event) noraise { event.param("id").unwrap_or("?") })
+  app.get("/users/:id", event => event.param("id").unwrap_or("?"))
   let client = @crescent.TestClient(app)
   let res = client.get("/users/42")
   assert_eq(res.status, OK)
@@ -47,7 +47,7 @@ async test "test client route params" {
 ///|
 async test "test client 404 for missing route" {
   let app = @crescent.Mocket()
-  app.get("/exists", fn(_) noraise { "ok" })
+  app.get("/exists", _ => "ok")
   let client = @crescent.TestClient(app)
   let res = client.get("/missing")
   assert_eq(res.status, NotFound)
@@ -56,9 +56,7 @@ async test "test client 404 for missing route" {
 ///|
 async test "test client custom not found handler" {
   let app = @crescent.Mocket()
-  app.set_not_found_handler(fn(_) noraise {
-    HttpResponse::not_found().body("custom 404")
-  })
+  app.set_not_found_handler(_ => HttpResponse::not_found().body("custom 404"))
   let client = @crescent.TestClient(app)
   let res = client.get("/anything")
   assert_eq(res.status, NotFound)
@@ -77,7 +75,7 @@ async test "test client runs middleware" {
     ran.val = true
     next()
   })
-  app.get("/test", fn(_) noraise { "ok" })
+  app.get("/test", _ => "ok")
   let client = @crescent.TestClient(app)
   let res = client.get("/test")
   assert_eq(res.status, OK)
@@ -103,7 +101,7 @@ async test "test client with error handling handler" {
 ///|
 async test "test client method not allowed" {
   let app = @crescent.Mocket()
-  app.get("/only-get", fn(_) noraise { "ok" })
+  app.get("/only-get", _ => "ok")
   let client = @crescent.TestClient(app)
   let res = client.post("/only-get")
   assert_eq(res.status, MethodNotAllowed)
@@ -112,8 +110,8 @@ async test "test client method not allowed" {
 ///|
 async test "test client PUT and DELETE" {
   let app = @crescent.Mocket()
-  app.put("/item", fn(_) noraise { "updated" })
-  app.delete("/item", fn(_) noraise { "deleted" })
+  app.put("/item", _ => "updated")
+  app.delete("/item", _ => "deleted")
   let client = @crescent.TestClient(app)
   let res_put = client.put("/item")
   assert_eq(res_put.body_text(), "updated")
@@ -124,7 +122,7 @@ async test "test client PUT and DELETE" {
 ///|
 async test "test client with custom headers" {
   let app = @crescent.Mocket()
-  app.get("/auth", fn(event) noraise {
+  app.get("/auth", event => {
     match event.req.get_header("authorization") {
       Some(token) => "token: " + token
       None => "no auth"
@@ -148,8 +146,8 @@ async test "test client with path-scoped middleware" {
     },
     base_path="/api",
   )
-  app.get("/api/data", fn(_) noraise { "data" })
-  app.get("/other", fn(_) noraise { "other" })
+  app.get("/api/data", _ => "data")
+  app.get("/other", _ => "other")
   let client = @crescent.TestClient(app)
   // Should trigger middleware
   ignore(client.get("/api/data"))

@@ -298,7 +298,7 @@ pub fn Mocket::static_assets(
 ) -> Unit {
   let mount_path = normalize_mount_path(self.base_path + path)
   self.use_middleware(
-    async fn(event, next) noraise {
+    (event, next) => {
       let request_path = event.req.path()
       if !@mhttp.path_scope_matches(mount_path, request_path) {
         return next()

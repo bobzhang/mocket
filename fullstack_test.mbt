@@ -78,9 +78,7 @@ fn build_todo_app() -> @crescent.Mocket {
   let next_id = Ref::new(3)
 
   // List todos
-  app.get_raw("/api/todos", fn(_) noraise {
-    @crescent.HttpResponse::ok().json_value(todos)
-  })
+  app.get_raw("/api/todos", _ => @crescent.HttpResponse::ok().json_value(todos))
 
   // Get single todo by ID
   app.get("/api/todos/:id", event => {
@@ -108,7 +106,7 @@ fn build_todo_app() -> @crescent.Mocket {
   })
 
   // Health check
-  app.get_raw("/health", fn(_) noraise { "ok" })
+  app.get_raw("/health", _ => "ok")
 
   // Apply security headers
   app.use_middleware(@middleware.security_headers())

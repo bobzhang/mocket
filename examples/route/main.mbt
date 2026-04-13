@@ -33,7 +33,7 @@ async fn main {
   })
 
   // Async Response
-  ..get_raw("/async_data", fn(_) noraise {
+  ..get_raw("/async_data", _ => {
     ({ "name": "John Doe", "age": 30, "city": "New York" } : Json)
   })
 
