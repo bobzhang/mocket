@@ -560,7 +560,7 @@ Methods: `@fetch.get`, `@fetch.post`, `@fetch.put`, `@fetch.patch`,
 ### Request limits
 
 ```moonbit nocheck
-  app.serve_with(port=4000, NativeServeOptions(
+  app.serve(port=4000, options=NativeServeOptions(
     max_connections=1000,               // concurrent connection limit
     max_request_body_bytes=1_048_576,   // 1MB body size limit (413 if exceeded)
     request_body_read_timeout_ms=5000,  // 5s read timeout (408 if exceeded)
@@ -570,7 +570,7 @@ Methods: `@fetch.get`, `@fetch.post`, `@fetch.put`, `@fetch.patch`,
 ### WebSocket options
 
 ```moonbit nocheck
-  app.serve_with(port=4000, NativeServeOptions(
+  app.serve(port=4000, options=NativeServeOptions(
     websocket_max_message_bytes=65536,         // max inbound message size
     websocket_outgoing_queue_capacity=100,     // outbound buffer per connection
     websocket_overflow_policy=DropOldest,      // or DropLatest

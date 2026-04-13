@@ -1047,32 +1047,25 @@ responses.
 
 ### Serve Function Variants
 
-The API offers multiple `serve` functions that compose via delegation:
+The API offers multiple `serve` functions that compose via delegation.
+All accept an optional `options~` parameter for server configuration:
 
 ```mermaid
 graph TD
-    SERVE["serve(port)"]
-    SERVE_WITH["serve_with(port, options)"]
-    SERVE_ON["serve_on(server)"]
-    SERVE_ON_WITH["serve_on_with(server, options)"]
-    SERVE_UNTIL["serve_until(port, shutdown)"]
-    SERVE_UNTIL_WITH["serve_until_with(port, shutdown, options)"]
-    SERVE_ON_UNTIL["serve_on_until(server, shutdown)"]
-    SERVE_ON_UNTIL_WITH["serve_on_until_with(server, shutdown, options)"]
+    SERVE["serve(port, options~)"]
+    SERVE_ON["serve_on(server, options~)"]
+    SERVE_UNTIL["serve_until(port, shutdown, options~)"]
+    SERVE_ON_UNTIL["serve_on_until(server, shutdown, options~)"]
     RUN["run_native_server<br/>(internal)"]
 
-    SERVE --> SERVE_WITH
-    SERVE_WITH --> SERVE_ON_WITH
-    SERVE_ON --> SERVE_ON_WITH
-    SERVE_UNTIL --> SERVE_UNTIL_WITH
-    SERVE_UNTIL_WITH --> SERVE_ON_UNTIL_WITH
-    SERVE_ON_UNTIL --> SERVE_ON_UNTIL_WITH
-    SERVE_ON_WITH --> RUN
-    SERVE_ON_UNTIL_WITH -->|"with shutdown<br/>signal"| RUN
+    SERVE --> SERVE_ON
+    SERVE_UNTIL --> SERVE_ON_UNTIL
+    SERVE_ON --> RUN
+    SERVE_ON_UNTIL -->|"with shutdown<br/>signal"| RUN
 ```
 
 - `serve(port=4000)` -- simplest. Listens forever.
-- `serve_with(port, options)` -- same, but with configuration.
+- `serve(port=4000, options=NativeServeOptions(...))` -- same, but with configuration.
 - `serve_on(server)` -- you provide a pre-configured `@http.Server`.
 - `serve_until(port, shutdown)` -- stops when `shutdown` queue receives a value.
   This enables **graceful shutdown**: the server stops accepting new connections

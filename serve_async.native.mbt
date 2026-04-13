@@ -296,18 +296,18 @@ test "allow_header_value with empty array" {
 
 ///|
 fn method_not_allowed_handler(allow : String) -> HttpHandler {
-  fn(event) noraise {
+  HttpHandler(event => {
     event.res.headers.set("Allow", allow)
     HttpResponse(status_code=MethodNotAllowed).body("Method Not Allowed")
-  }
+  })
 }
 
 ///|
 fn options_handler(allow : String) -> HttpHandler {
-  fn(event) noraise {
+  HttpHandler(event => {
     event.res.headers.set("Allow", allow)
     HttpResponse(status_code=NoContent)
-  }
+  })
 }
 
 ///|
@@ -316,7 +316,7 @@ async fn send_raw_response_async(
   response : HttpResponse,
   headers : Map[String, String],
   include_body : Bool,
-) -> Unit raise Error {
+) -> Unit {
   if !@mhttp.has_header_case_insensitive(headers, "Date") {
     headers.set("Date", current_http_date())
   }
@@ -797,16 +797,7 @@ async fn wait_for_shutdown_signal(shutdown : @async.Queue[Unit]) -> Unit {
 }
 
 ///|
-/// Starts serving HTTP requests on the given server with default options.
-pub async fn Mocket::serve_on(
-  self : Mocket,
-  server : @http.Server,
-) -> Unit raise Error {
-  self.serve_on_with(server, NativeServeOptions())
-}
-
-///|
-/// Serve using explicit native async runtime options.
+/// Starts serving HTTP requests on the given server.
 /// `max_connections`, if present, limits the number of client connections
 /// handled in parallel by the underlying `@http.Server`.
 /// `max_request_body_bytes`, if present, rejects oversized request bodies
@@ -821,27 +812,14 @@ pub async fn Mocket::serve_on(
 /// websocket queue drops the oldest or latest message.
 /// `websocket_read_timeout_ms`, if present, closes websocket connections
 /// after that many milliseconds waiting for the next inbound message.
-pub async fn Mocket::serve_on_with(
+pub async fn Mocket::serve_on(
   self : Mocket,
   server : @http.Server,
-  options : NativeServeOptions,
-) -> Unit raise Error {
+  options? : NativeServeOptions = NativeServeOptions(),
+) -> Unit {
   let ws_runtime_id = next_ws_serve_runtime_id(self)
   defer cleanup_native_ws_runtime(ws_runtime_id)
   run_native_server(self, ws_runtime_id, server, options)
-}
-
-///|
-/// Stop serving when `shutdown` receives a unit or is closed.
-/// `shutdown.put(())` wakes one waiter; `shutdown.close()` broadcasts to all waiters.
-/// Shutdown is cancellation-based: active requests and websocket sessions
-/// are aborted rather than drained to completion.
-pub async fn Mocket::serve_on_until(
-  self : Mocket,
-  server : @http.Server,
-  shutdown : @async.Queue[Unit],
-) -> Unit raise Error {
-  self.serve_on_until_with(server, shutdown, NativeServeOptions())
 }
 
 ///|
@@ -852,12 +830,12 @@ pub async fn Mocket::serve_on_until(
 /// accepting new connections and waits up to that many milliseconds for
 /// in-flight requests to complete before force-cancelling. When unset,
 /// shutdown is cancellation-based (active requests are aborted immediately).
-pub async fn Mocket::serve_on_until_with(
+pub async fn Mocket::serve_on_until(
   self : Mocket,
   server : @http.Server,
   shutdown : @async.Queue[Unit],
-  options : NativeServeOptions,
-) -> Unit raise Error {
+  options? : NativeServeOptions = NativeServeOptions(),
+) -> Unit {
   let ws_runtime_id = next_ws_serve_runtime_id(self)
   defer cleanup_native_ws_runtime(ws_runtime_id)
   match resolve_native_shutdown_timeout_ms(options) {
@@ -967,13 +945,7 @@ pub async fn Mocket::serve_on_until_with(
 }
 
 ///|
-/// Starts serving HTTP requests on the given port with default options.
-pub async fn Mocket::serve(self : Mocket, port~ : Int) -> Unit raise Error {
-  self.serve_with(port~, NativeServeOptions())
-}
-
-///|
-/// Serve on `port` using explicit native async runtime options.
+/// Starts serving HTTP requests on the given port.
 /// `max_connections`, if present, limits the number of client connections
 /// handled in parallel by the underlying `@http.Server`.
 /// `max_request_body_bytes`, if present, rejects oversized request bodies
@@ -988,10 +960,10 @@ pub async fn Mocket::serve(self : Mocket, port~ : Int) -> Unit raise Error {
 /// websocket queue drops the oldest or latest message.
 /// `websocket_read_timeout_ms`, if present, closes websocket connections
 /// after that many milliseconds waiting for the next inbound message.
-pub async fn Mocket::serve_with(
+pub async fn Mocket::serve(
   self : Mocket,
   port~ : Int,
-  options : NativeServeOptions,
+  options? : NativeServeOptions = NativeServeOptions(),
 ) -> Unit raise Error {
   let _ = resolve_native_max_connections(options)
   let _ = resolve_native_max_request_body_bytes(options)
@@ -1002,46 +974,36 @@ pub async fn Mocket::serve_with(
   let _ = resolve_native_websocket_read_timeout_ms(options)
   let addr = @socket.Addr::parse("0.0.0.0:\{port}")
   let server = @http.Server::new(addr, reuse_addr=true)
-  self.serve_on_with(server, options)
+  self.serve_on(server, options~)
 }
 
 ///|
 /// Stop serving when `shutdown` receives a unit or is closed.
 /// `shutdown.put(())` wakes one waiter; `shutdown.close()` broadcasts to all waiters.
-/// Shutdown is cancellation-based: active requests and websocket sessions
-/// are aborted rather than drained to completion.
+///
+/// When `shutdown_timeout_ms` is set, shutdown is graceful: the server stops
+/// accepting new connections and waits up to that many milliseconds for
+/// in-flight requests to complete before force-cancelling. When unset,
+/// shutdown is cancellation-based (active requests are aborted immediately).
+/// `max_connections`, if present, limits the number of client connections
+/// handled in parallel by the underlying `@http.Server`.
+/// `max_request_body_bytes`, if present, rejects oversized request bodies
+/// with `413 Request Entity Too Large`.
+/// `request_body_read_timeout_ms`, if present, rejects slow request bodies
+/// with `408 Request Timeout`.
+/// `websocket_max_message_bytes`, if present, closes websocket connections
+/// with `1009 MessageTooBig` when an inbound message exceeds that many bytes.
+/// `websocket_outgoing_queue_capacity`, if present, bounds buffered outbound
+/// websocket messages per connection.
+/// `websocket_overflow_policy`, if present, chooses whether a full outbound
+/// websocket queue drops the oldest or latest message.
+/// `websocket_read_timeout_ms`, if present, closes websocket connections
+/// after that many milliseconds waiting for the next inbound message.
 pub async fn Mocket::serve_until(
   self : Mocket,
   port~ : Int,
   shutdown : @async.Queue[Unit],
-) -> Unit raise Error {
-  self.serve_until_with(port~, shutdown, NativeServeOptions())
-}
-
-///|
-/// Stop serving when `shutdown` receives a unit or is closed.
-/// `shutdown.put(())` wakes one waiter; `shutdown.close()` broadcasts to all waiters.
-/// Shutdown is cancellation-based: active requests and websocket sessions
-/// are aborted rather than drained to completion.
-/// `max_connections`, if present, limits the number of client connections
-/// handled in parallel by the underlying `@http.Server`.
-/// `max_request_body_bytes`, if present, rejects oversized request bodies
-/// with `413 Request Entity Too Large`.
-/// `request_body_read_timeout_ms`, if present, rejects slow request bodies
-/// with `408 Request Timeout`.
-/// `websocket_max_message_bytes`, if present, closes websocket connections
-/// with `1009 MessageTooBig` when an inbound message exceeds that many bytes.
-/// `websocket_outgoing_queue_capacity`, if present, bounds buffered outbound
-/// websocket messages per connection.
-/// `websocket_overflow_policy`, if present, chooses whether a full outbound
-/// websocket queue drops the oldest or latest message.
-/// `websocket_read_timeout_ms`, if present, closes websocket connections
-/// after that many milliseconds waiting for the next inbound message.
-pub async fn Mocket::serve_until_with(
-  self : Mocket,
-  port~ : Int,
-  shutdown : @async.Queue[Unit],
-  options : NativeServeOptions,
+  options? : NativeServeOptions = NativeServeOptions(),
 ) -> Unit raise Error {
   let _ = resolve_native_max_connections(options)
   let _ = resolve_native_max_request_body_bytes(options)
@@ -1052,5 +1014,5 @@ pub async fn Mocket::serve_until_with(
   let _ = resolve_native_websocket_read_timeout_ms(options)
   let addr = @socket.Addr::parse("0.0.0.0:\{port}")
   let server = @http.Server::new(addr, reuse_addr=true)
-  self.serve_on_until_with(server, shutdown, options)
+  self.serve_on_until(server, shutdown, options~)
 }
