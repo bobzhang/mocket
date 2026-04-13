@@ -45,7 +45,7 @@ fn resolve_fetch_url(
   url : String,
 ) -> (FetchProtocol, String, Int, String) raise Error {
   // Parse the URL using the proper RFC 3986 parser from the uri package.
-  let parsed = @uri.Uri::parse(url) catch {
+  let parsed = @uri.Uri(url) catch {
     _ => raise FetchError::RequestFailed("invalid URL: \{url}")
   }
 

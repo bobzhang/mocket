@@ -37,7 +37,7 @@ is a valid URI-reference (scheme and authority are `None`, path is
 ## Design Notes
 
 **Zero-copy.** All of `Uri`'s string-valued fields are `StringView` slices
-into the original input. `Uri::parse` does not allocate a new string for
+into the original input. `Uri(source)` does not allocate a new string for
 any component — it records offset ranges. This matters at HTTP server
 scale, where every request parses a fresh URI.
 
@@ -65,13 +65,13 @@ import {
 
 ## Parsing a Full URI
 
-`Uri::parse` takes a `StringView` and returns a fully populated `Uri`, or
+`Uri(source)` takes a `StringView` and returns a fully populated `Uri`, or
 raises a `ParseError` if the input does not conform to the RFC 3986 grammar.
 
 ```mbt check
 ///|
 test "parse a full http URL" {
-  let uri = @uri.Uri::parse("http://example.com/path/to/resource?q=hello#frag")
+  let uri = @uri.Uri("http://example.com/path/to/resource?q=hello#frag")
   assert_eq(uri.scheme, Some("http"))
   assert_eq(uri.path, ["path", "to", "resource"])
   assert_eq(uri.query, Some("q=hello"))
@@ -94,7 +94,7 @@ so the IPv6-vs-reg-name distinction is never lost:
 ```mbt check
 ///|
 test "parse authority with userinfo and port" {
-  let uri = @uri.Uri::parse("ftp://admin:secret@files.example.com:2121/pub")
+  let uri = @uri.Uri("ftp://admin:secret@files.example.com:2121/pub")
   guard uri.authority is Some(auth) else { fail("expected authority") }
   assert_eq(auth.userinfo, Some("admin:secret"))
   assert_true(auth.host is RegName("files.example.com"))
@@ -113,7 +113,7 @@ branch on the variant without any string inspection:
 ```mbt check
 ///|
 test "parse an IPv6 literal host" {
-  let uri = @uri.Uri::parse("http://[2001:db8::1]:8080/api")
+  let uri = @uri.Uri("http://[2001:db8::1]:8080/api")
   guard uri.authority is Some(auth) else { fail("expected authority") }
   assert_true(auth.host is IPv6Address("2001:db8::1"))
   assert_eq(auth.port, Some(8080))
@@ -134,7 +134,7 @@ All of these parse into a `Uri` where the missing components are `None`.
 ```mbt check
 ///|
 test "parse an absolute-path reference" {
-  let uri = @uri.Uri::parse("/absolute/path")
+  let uri = @uri.Uri("/absolute/path")
   assert_eq(uri.scheme, None)
   assert_true(uri.authority is None)
   assert_eq(uri.path, ["absolute", "path"])
@@ -144,7 +144,7 @@ test "parse an absolute-path reference" {
 ```mbt check
 ///|
 test "parse a relative reference with .. segments" {
-  let uri = @uri.Uri::parse("../path/file.txt")
+  let uri = @uri.Uri("../path/file.txt")
   assert_eq(uri.scheme, None)
   assert_true(uri.authority is None)
   // Dot segments are preserved in the path — they are not resolved by the
@@ -156,7 +156,7 @@ test "parse a relative reference with .. segments" {
 ```mbt check
 ///|
 test "parse a fragment-only reference" {
-  let uri = @uri.Uri::parse("#section-2")
+  let uri = @uri.Uri("#section-2")
   assert_eq(uri.scheme, None)
   assert_true(uri.authority is None)
   assert_eq(uri.path, [])
@@ -176,7 +176,7 @@ or encoded:
 ```mbt check
 ///|
 test "percent-encoded sequences are preserved verbatim" {
-  let uri = @uri.Uri::parse("http://example.com/hello%20world")
+  let uri = @uri.Uri("http://example.com/hello%20world")
   assert_eq(uri.path, ["hello%20world"])
 }
 ```
@@ -188,7 +188,7 @@ later. This turns a subtle decoding bug into a loud parse failure:
 ```mbt check
 ///|
 test "invalid percent-encoding is rejected" {
-  let bad : Result[@uri.Uri, @uri.ParseError] = try? @uri.Uri::parse(
+  let bad : Result[@uri.Uri, @uri.ParseError] = try? @uri.Uri(
     "http://example.com/path%GG",
   )
   assert_true(bad is Err(_))
@@ -217,12 +217,12 @@ Wrap calls in `try?` to convert raises into `Result`:
 ```mbt check
 ///|
 test "ParseError surfaces as a Result" {
-  let ok : Result[@uri.Uri, @uri.ParseError] = try? @uri.Uri::parse(
+  let ok : Result[@uri.Uri, @uri.ParseError] = try? @uri.Uri(
     "https://example.com/",
   )
   assert_true(ok is Ok(_))
 
-  let bad : Result[@uri.Uri, @uri.ParseError] = try? @uri.Uri::parse(
+  let bad : Result[@uri.Uri, @uri.ParseError] = try? @uri.Uri(
     "http://example.com/path%GG",
   )
   assert_true(bad is Err(_))

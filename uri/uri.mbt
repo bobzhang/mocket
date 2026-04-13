@@ -34,6 +34,8 @@ pub struct Uri {
   mut query : StringView?
   /// Fragment after `#`, if present (without the `#`).
   mut fragment : StringView?
+
+  fn new(source : StringView) -> Uri raise ParseError
 } derive(Eq, Debug)
 
 ///|
@@ -191,7 +193,7 @@ fn parse_uri_reference(
 ///|
 /// Parses a URI-reference from raw bytes following RFC 3986, returning a fully
 /// populated `Uri` structure or raising a `ParseError` on invalid input.
-pub fn Uri::parse(source : StringView) -> Uri raise ParseError {
+fn Uri::new(source : StringView) -> Uri raise ParseError {
   let uri = Uri::{
     scheme: None,
     authority: None,
@@ -887,52 +889,46 @@ test "parse_percent_encoding accepts only hex digits" {
 
 ///|
 test "parse rejects URI with invalid percent encoding" {
-  let bad : Result[Uri, ParseError] = try? Uri::parse(
-    "http://example.com/path%GG",
-  )
+  let bad : Result[Uri, ParseError] = try? Uri("http://example.com/path%GG")
   assert_true(bad is Err(_))
 }
 
 ///|
 test "parse accepts percent-encoded query" {
   // Regression test for percent-encoding bug in parse_query_then_fragment
-  let ok : Result[Uri, ParseError] = try? Uri::parse(
-    "http://example.com/?q=a%20b",
-  )
+  let ok : Result[Uri, ParseError] = try? Uri("http://example.com/?q=a%20b")
   assert_true(ok is Ok(_))
 }
 
 ///|
 test "parse accepts percent-encoded fragment" {
   // Regression test for percent-encoding bug in parse_fragment
-  let ok : Result[Uri, ParseError] = try? Uri::parse(
-    "http://example.com/#sec%20tion",
-  )
+  let ok : Result[Uri, ParseError] = try? Uri("http://example.com/#sec%20tion")
   assert_true(ok is Ok(_))
 }
 
 ///|
 test "parse accepts percent-encoded host" {
   // Regression test for percent-encoding bug in parse_reg_name
-  let ok : Result[Uri, ParseError] = try? Uri::parse("http://ex%C3%A4mple.com/")
+  let ok : Result[Uri, ParseError] = try? Uri("http://ex%C3%A4mple.com/")
   assert_true(ok is Ok(_))
 }
 
 ///|
 test "parse accepts bare relative reference" {
   // Regression test: previously "foo" raised InvalidSchemeOrSegment at EOF
-  let ok1 : Result[Uri, ParseError] = try? Uri::parse("foo")
+  let ok1 : Result[Uri, ParseError] = try? Uri("foo")
   assert_true(ok1 is Ok(_))
-  let ok2 : Result[Uri, ParseError] = try? Uri::parse(".")
+  let ok2 : Result[Uri, ParseError] = try? Uri(".")
   assert_true(ok2 is Ok(_))
-  let ok3 : Result[Uri, ParseError] = try? Uri::parse("..")
+  let ok3 : Result[Uri, ParseError] = try? Uri("..")
   assert_true(ok3 is Ok(_))
 }
 
 ///|
 test "parse relative ref with fragment puts value in fragment, not query" {
   // Regression test: "foo#bar" previously put "bar" in query field
-  let uri = Uri::parse("foo#bar")
+  let uri = Uri("foo#bar")
   assert_eq(uri.query, None)
   assert_eq(uri.fragment, Some("bar"))
 }
