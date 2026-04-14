@@ -19,6 +19,7 @@ import {
 import {
   "bobzhang/crescent/fetch" @fetch,
   "bobzhang/crescent/middleware" @middleware,
+  "bobzhang/crescent/test_client" @test_client,
   "moonbitlang/async/os_error",
 } for "test"
 

@@ -228,6 +228,7 @@ graph TB
         URI["uri/<br/>RFC 3986 Parser"]
         STATICFILE["static_file/<br/>File Provider"]
         FETCH["fetch/<br/>HTTP Client"]
+        TESTCLIENT["test_client/<br/>In-process Test Client"]
     end
 
     subgraph "External Dependencies"
@@ -1192,7 +1193,7 @@ the root package no longer depends on `uri/` as a result.
 
 ## 16. Testing Infrastructure
 
-### Test Client (`test_client.mbt`)
+### Test Client (`test_client/`)
 
 The `TestClient` dispatches requests through the full routing + middleware
 pipeline **without network I/O**. It calls `Mocket::dispatch()` directly, which
@@ -1202,7 +1203,7 @@ response -- all in-process.
 ```moonbit
 let app = Mocket()
 app.get("/hello", fn(_) { "world" })
-let client = TestClient(app)
+let client = @test_client.TestClient(app)
 let resp = client.get("/hello")
 assert_eq(resp.body_text(), "world")
 assert_eq(resp.status, OK)
@@ -1284,7 +1285,7 @@ responsibility:
 | `redirect.mbt`             | 31    | Redirect helper functions                     |
 | `not_found.mbt`            | 4     | Default 404 handler                           |
 | `resource.mbt`             | 63    | RESTful `resource()` CRUD registration        |
-| `test_client.mbt`          | 106   | `TestClient` for in-process testing           |
+| ~~`test_client.mbt`~~      |       | *(moved to `test_client/` sub-package)*       |
 | ~~`fetch.mbt`~~            |       | *(moved to `fetch/` sub-package)*             |
 | `static.mbt`               | 446   | `ServeStaticProvider` trait, asset serving     |
 | `websocket.mbt`            | 109   | `WebSocketPeer`, events, handler type         |

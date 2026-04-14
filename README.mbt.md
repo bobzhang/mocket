@@ -182,7 +182,7 @@ async test "security headers middleware" {
   let app = @crescent.Mocket()
   app.use_middleware(@middleware.security_headers())
   app.get_raw("/test", fn(_) noraise { "ok" })
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/test")
   guard res.headers
     is { "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", .. } else {
@@ -195,7 +195,7 @@ async test "request ID middleware" {
   let app = @crescent.Mocket()
   app.use_middleware(@middleware.request_id())
   app.get_raw("/test", fn(_) noraise { "ok" })
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/test")
   assert_true(res.headers.get("X-Request-Id") is Some(_))
 }
@@ -209,7 +209,7 @@ async test "request ID middleware" {
 ///|
 async test "create a todo" {
   let app = build_app()
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
 
   let res = client.post("/api/todos", body=b"{\"title\":\"Write tests\"}")
   assert_eq(res.status, Created)
@@ -221,28 +221,28 @@ async test "create a todo" {
 
 ///|
 async test "invalid ID returns 400" {
-  let client = TestClient(build_app())
+  let client = @test_client.TestClient(build_app())
   let res = client.get("/api/todos/abc")
   assert_eq(res.status, BadRequest)
 }
 
 ///|
 async test "missing todo returns 404" {
-  let client = TestClient(build_app())
+  let client = @test_client.TestClient(build_app())
   let res = client.get("/api/todos/999")
   assert_eq(res.status, NotFound)
 }
 
 ///|
 async test "bad JSON returns 400" {
-  let client = TestClient(build_app())
+  let client = @test_client.TestClient(build_app())
   let res = client.post("/api/todos", body=b"not json")
   assert_eq(res.status, BadRequest)
 }
 
 ///|
 async test "security headers are present" {
-  let client = TestClient(build_app())
+  let client = @test_client.TestClient(build_app())
   let res = client.get("/health")
   assert_eq(res.headers.get("X-Content-Type-Options"), Some("nosniff"))
 }
@@ -262,7 +262,7 @@ async test "typed handler auto-maps errors" {
     let input : TodoInput = event.json()
     HttpResponse::created().json_value(input)
   })
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
 
   // Valid request
   let res = client.post("/todos", body=b"{\"title\":\"Learn MoonBit\"}")
@@ -369,7 +369,7 @@ async test "resource CRUD" {
       },
     ),
   )
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
 
   // List
   let res = client.get("/items")
@@ -897,6 +897,7 @@ bobzhang/crescent/httputil    — HTTP protocol: headers, dates, URL encoding
 bobzhang/crescent/cors        — CORS middleware
 bobzhang/crescent/fetch       — HTTP client
 bobzhang/crescent/static_file — Static file provider (filesystem)
+bobzhang/crescent/test_client — In-process test client (no network I/O)
 bobzhang/crescent/uri         — RFC 3986 URI parser
 ```
 

@@ -9,7 +9,7 @@ async test "request_id middleware generates unique ids" {
       None => "no-id"
     }
   })
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res1 = client.get("/test")
   let res2 = client.get("/test")
   // Both should have X-Request-Id
@@ -35,7 +35,7 @@ async test "request_id middleware preserves existing id" {
       None => "no-id"
     }
   })
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/test", headers={ "X-Request-Id": "custom-trace-123" })
   assert_eq(res.headers.get("X-Request-Id"), Some("custom-trace-123"))
   assert_eq(res.body_text(), "custom-trace-123")
@@ -50,7 +50,7 @@ async test "request_id returns None without middleware" {
       None => "no-id"
     }
   })
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/test")
   assert_eq(res.body_text(), "no-id")
 }

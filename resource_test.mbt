@@ -49,7 +49,7 @@ async test "resource registers all CRUD routes" {
       },
     ),
   )
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   // GET /api/items — list
   let res = client.get("/api/items")
   assert_eq(res.status, OK)
@@ -96,7 +96,7 @@ async test "resource with partial config only registers provided handlers" {
     "/api/readonly",
     ResourceConfig(list=_ => @crescent.HttpResponse::ok().json_value([1, 2, 3])),
   )
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   // GET works
   let res = client.get("/api/readonly")
   assert_eq(res.status, OK)

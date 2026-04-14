@@ -76,7 +76,7 @@ async test "rate_limit allows traffic under the budget" {
     @middleware.rate_limit(requests_per_window=3, window_ms=10000),
   )
   app.get("/ping", _ => "ok")
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   assert_eq(client.get("/ping").status, OK)
   assert_eq(client.get("/ping").status, OK)
   assert_eq(client.get("/ping").status, OK)
@@ -94,7 +94,7 @@ async test "rate_limit returns 429 with Retry-After" {
     @middleware.rate_limit(requests_per_window=1, window_ms=10000),
   )
   app.get("/ping", _ => "ok")
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let _first = client.get("/ping")
   let blocked = client.get("/ping")
   assert_eq(blocked.status, TooManyRequests)
@@ -130,7 +130,7 @@ async test "request_id adds an opaque hex id" {
   let app = @crescent.Mocket()
   app.use_middleware(@middleware.request_id())
   app.get("/hello", _ => "hi")
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/hello")
   // X-Request-Id changes every request
   assert_true(res.headers.get("X-Request-Id") is Some(_))
@@ -147,7 +147,7 @@ async test "request_id preserves an upstream-assigned id" {
   let app = @crescent.Mocket()
   app.use_middleware(@middleware.request_id())
   app.get("/hello", _ => "hi")
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/hello", headers={ "X-Request-Id": "trace-abc" })
   assert_eq(res.headers.get("X-Request-Id"), Some("trace-abc"))
 }
@@ -171,7 +171,7 @@ async test "handler can read the request id via event.request_id()" {
       None => "no-id"
     }
   })
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/whoami", headers={ "X-Request-Id": "trace-xyz" })
   assert_eq(res.body_text(), "id:trace-xyz")
 }
@@ -202,7 +202,7 @@ async test "security_headers sets base headers" {
   let app = @crescent.Mocket()
   app.use_middleware(@middleware.security_headers())
   app.get("/", _ => "ok")
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/")
   guard res.headers
     is {
@@ -241,7 +241,7 @@ async test "security_headers with opt-in policy headers" {
     ),
   )
   app.get("/", _ => "ok")
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/")
   guard res.headers
     is {
@@ -273,7 +273,7 @@ async test "handler-set headers override middleware defaults" {
     event.res.headers.set("X-Frame-Options", "SAMEORIGIN")
     "ok"
   })
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/embed")
   guard res.headers
     is {

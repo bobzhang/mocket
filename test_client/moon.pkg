@@ -1,0 +1,11 @@
+import {
+  "bobzhang/crescent" @crescent,
+  "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/async",
+} for "test"
+
+warnings = "+missing_doc+unnecessary_annotation+74"

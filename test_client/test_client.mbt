@@ -2,16 +2,16 @@
 /// A test HTTP client that dispatches requests directly without network I/O.
 pub struct TestClient {
   /// The application instance to dispatch requests against.
-  priv app : Mocket
+  priv app : @crescent.Mocket
 
-  fn new(app : Mocket) -> TestClient
+  fn new(app : @crescent.Mocket) -> TestClient
 }
 
 ///|
 /// The response from a `TestClient` request, containing status, headers, and body.
 pub struct TestResponse {
   /// The HTTP status code returned by the handler.
-  status : StatusCode
+  status : @crescent.StatusCode
   /// Response headers as key-value pairs.
   headers : Map[String, String]
   /// The raw response body bytes.
@@ -20,7 +20,7 @@ pub struct TestResponse {
 
 ///|
 /// Creates a new test client wrapping the given app.
-fn TestClient::new(app : Mocket) -> TestClient {
+pub fn TestClient::new(app : @crescent.Mocket) -> TestClient {
   { app, }
 }
 

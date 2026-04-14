@@ -3,7 +3,7 @@ async test "security_headers sets base headers by default" {
   let app = @crescent.Mocket()
   app.use_middleware(security_headers())
   app.get("/test", _ => "ok")
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/test")
   inspect(
     res.headers.get("X-Content-Type-Options"),
@@ -32,7 +32,7 @@ async test "security_headers with opt-in policy headers" {
     ),
   )
   app.get("/test", _ => "ok")
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/test")
   inspect(
     res.headers.get("Strict-Transport-Security"),
@@ -59,7 +59,7 @@ async test "security_headers preserves handler-set headers" {
     event.res.headers.set("X-Frame-Options", "SAMEORIGIN")
     "ok"
   })
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/test")
   // Per-route values must NOT be overwritten
   inspect(
@@ -74,7 +74,7 @@ async test "security_headers preserves handler response" {
   let app = @crescent.Mocket()
   app.use_middleware(security_headers())
   app.get("/hello", _ => "hello-response")
-  let client = @crescent.TestClient(app)
+  let client = @test_client.TestClient(app)
   let res = client.get("/hello")
   inspect(res.body_text(), content="hello-response")
 }
