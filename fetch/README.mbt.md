@@ -78,14 +78,14 @@ async fn example_fetch_get() -> Unit {
 ### Query strings
 
 There is no dedicated query-parameter helper — build the URL yourself.
-Combine `@mhttp.url_encode` with string concatenation for single-value
-queries, or `@mhttp.form_encode` for maps:
+Combine `@httputil.url_encode` with string concatenation for single-value
+queries, or `@httputil.form_encode` for maps:
 
 ```moonbit check
 ///|
 #warnings("-unused_value")
 async fn example_fetch_search() -> Unit {
-  let q = @mhttp.url_encode("hello world")
+  let q = @httputil.url_encode("hello world")
   let _res = @fetch.get("https://api.example.com/search?q=\{q}")
 }
 ```
@@ -108,13 +108,13 @@ async fn example_fetch_post_json() -> Unit {
 ```
 
 For `application/x-www-form-urlencoded` bodies, encode the map with
-`@mhttp.form_encode` and set the content type explicitly:
+`@httputil.form_encode` and set the content type explicitly:
 
 ```moonbit check
 ///|
 #warnings("-unused_value")
 async fn example_fetch_post_form() -> Unit {
-  let form = @mhttp.form_encode({ "name": "alice", "city": "NYC" })
+  let form = @httputil.form_encode({ "name": "alice", "city": "NYC" })
   let _res = @fetch.post("https://api.example.com/signup", data=form, headers={
     "Content-Type": "application/x-www-form-urlencoded",
   })

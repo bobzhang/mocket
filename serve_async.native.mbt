@@ -46,7 +46,7 @@ fn current_http_date() -> String {
   let now = @async.now() / 1000L
   if now != cached_date_second.val {
     cached_date_second.val = now
-    cached_date_string.val = @mhttp.format_http_date(now)
+    cached_date_string.val = @httputil.format_http_date(now)
   }
   cached_date_string.val
 }
@@ -150,7 +150,7 @@ fn header_contains_token_case_insensitive(
   token_name : String,
 ) -> Bool {
   let normalized_token_name = token_name.to_lower()
-  match @mhttp.get_header_case_insensitive(headers, header_name) {
+  match @httputil.get_header_case_insensitive(headers, header_name) {
     Some(value) => {
       for token in value.split(",") {
         if token.trim().to_lower() == normalized_token_name {
@@ -207,7 +207,7 @@ fn is_websocket_upgrade_request(request : @http.Request) -> Bool {
     "upgrade",
   )
   let has_websocket_upgrade = match
-    @mhttp.get_header_case_insensitive(request.headers, "upgrade") {
+    @httputil.get_header_case_insensitive(request.headers, "upgrade") {
     Some(value) => value.trim().to_lower() == "websocket"
     None => false
   }
@@ -253,7 +253,7 @@ test "is_websocket_upgrade_request returns false with empty headers" {
 ///|
 fn looks_like_websocket_handshake_request(request : @http.Request) -> Bool {
   let websocket_upgrade_header = match
-    @mhttp.get_header_case_insensitive(request.headers, "upgrade") {
+    @httputil.get_header_case_insensitive(request.headers, "upgrade") {
     Some(value) => value.trim().to_lower() == "websocket"
     None => false
   }
@@ -317,13 +317,13 @@ async fn send_raw_response_async(
   headers : Map[String, String],
   include_body : Bool,
 ) -> Unit {
-  if !@mhttp.has_header_case_insensitive(headers, "Date") {
+  if !@httputil.has_header_case_insensitive(headers, "Date") {
     headers.set("Date", current_http_date())
   }
-  if !@mhttp.has_header_case_insensitive(headers, "Content-Length") {
+  if !@httputil.has_header_case_insensitive(headers, "Content-Length") {
     headers.set("Content-Length", response.raw_body.length().to_string())
   }
-  if !@mhttp.has_header_case_insensitive(headers, "Connection") {
+  if !@httputil.has_header_case_insensitive(headers, "Connection") {
     headers.set("Connection", "close")
   }
   let raw_response = @buffer.new()
@@ -395,14 +395,14 @@ async fn send_response_async(
   // Use response headers directly, append cookies in-place
   let headers = response.headers
   append_cookie_headers(headers, response.cookies)
-  if !@mhttp.has_header_case_insensitive(headers, "Date") {
+  if !@httputil.has_header_case_insensitive(headers, "Date") {
     headers.set("Date", current_http_date())
   }
   if request.meth == Head {
     send_raw_response_async(conn, response, headers, false)
     return
   }
-  if @mhttp.has_header_case_insensitive(headers, "Content-Encoding") {
+  if @httputil.has_header_case_insensitive(headers, "Content-Encoding") {
     send_raw_response_async(conn, response, headers, true)
     return
   }
@@ -425,10 +425,10 @@ async fn send_response_and_close_async(
 ) -> Unit raise Error {
   let headers = response.headers
   append_cookie_headers(headers, response.cookies)
-  if !@mhttp.has_header_case_insensitive(headers, "Date") {
+  if !@httputil.has_header_case_insensitive(headers, "Date") {
     headers.set("Date", current_http_date())
   }
-  if !@mhttp.has_header_case_insensitive(headers, "Content-Length") {
+  if !@httputil.has_header_case_insensitive(headers, "Content-Length") {
     headers.set("Content-Length", response.raw_body.length().to_string())
   }
   headers.set("Connection", "close")
@@ -496,7 +496,8 @@ async fn send_gateway_timeout_async(
 
 ///|
 fn request_content_length(request : @http.Request) -> Int? {
-  match @mhttp.get_header_case_insensitive(request.headers, "content-length") {
+  match
+    @httputil.get_header_case_insensitive(request.headers, "content-length") {
     Some(value) => Some(@string.parse_int(value) catch { _ => return None })
     None => None
   }
@@ -642,7 +643,7 @@ async fn handle_request_async(
   conn : @http.ServerConnection,
   options : NativeServeOptions,
 ) -> Unit raise Error {
-  let request_path = @mhttp.request_target_path(request.path)
+  let request_path = @httputil.request_target_path(request.path)
   let strict_websocket_upgrade = is_websocket_upgrade_request(request)
   // Skip expensive WebSocket handshake inspection when no WS routes exist
   let has_ws_routes = !app.ws_static_routes.is_empty() ||

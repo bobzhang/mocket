@@ -21,26 +21,26 @@ pub fn security_headers(
   (event, next) => {
     let res = next()
     let h = event.res.headers
-    @mhttp.set_missing_header_case_insensitive(
+    @httputil.set_missing_header_case_insensitive(
       h, "X-Content-Type-Options", "nosniff",
     )
-    @mhttp.set_missing_header_case_insensitive(h, "X-Frame-Options", "DENY")
-    @mhttp.set_missing_header_case_insensitive(h, "X-XSS-Protection", "0")
-    @mhttp.set_missing_header_case_insensitive(
+    @httputil.set_missing_header_case_insensitive(h, "X-Frame-Options", "DENY")
+    @httputil.set_missing_header_case_insensitive(h, "X-XSS-Protection", "0")
+    @httputil.set_missing_header_case_insensitive(
       h, "Referrer-Policy", "strict-origin-when-cross-origin",
     )
     if hsts != "" {
-      @mhttp.set_missing_header_case_insensitive(
+      @httputil.set_missing_header_case_insensitive(
         h, "Strict-Transport-Security", hsts,
       )
     }
     if csp != "" {
-      @mhttp.set_missing_header_case_insensitive(
+      @httputil.set_missing_header_case_insensitive(
         h, "Content-Security-Policy", csp,
       )
     }
     if permissions_policy != "" {
-      @mhttp.set_missing_header_case_insensitive(
+      @httputil.set_missing_header_case_insensitive(
         h, "Permissions-Policy", permissions_policy,
       )
     }

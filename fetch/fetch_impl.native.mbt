@@ -225,7 +225,7 @@ fn prepare_fetch_payload_bytes(
   data : &@core.Responder?,
   headers : Map[String, String]?,
 ) -> (Bytes?, Map[String, String]) {
-  let req_headers = @mhttp.copy_headers(headers.unwrap_or({}))
+  let req_headers = @httputil.copy_headers(headers.unwrap_or({}))
   let req_body = match body {
     Some(raw_body) => Some(@utf8.encode(raw_body))
     None =>
@@ -234,7 +234,7 @@ fn prepare_fetch_payload_bytes(
           let res = @core.HttpResponse(status_code=OK)
           responder_data.options(res)
           res.headers.each((key, value) => {
-            if !@mhttp.has_header_case_insensitive(req_headers, key) {
+            if !@httputil.has_header_case_insensitive(req_headers, key) {
               req_headers.set(key.to_string(), value.to_string())
             }
           })
@@ -291,7 +291,7 @@ pub async fn fetch(
     }
   HttpResponse(
     status_code=@core.StatusCode::from_int(response.code),
-    headers=@mhttp.copy_headers(response.headers),
+    headers=@httputil.copy_headers(response.headers),
     raw_body=response_body,
   )
 }

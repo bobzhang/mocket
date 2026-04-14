@@ -1,4 +1,4 @@
-# HTTP
+# httputil
 
 Low-level HTTP building blocks: case-insensitive headers, URL encoding,
 form parsing, RFC-7231 dates, multipart bodies, and request-target
@@ -33,7 +33,7 @@ This package is included with `bobzhang/crescent`. Import it directly:
 
 ```
 import {
-  "bobzhang/crescent/http"
+  "bobzhang/crescent/httputil"
   ...
 }
 ```
@@ -56,14 +56,14 @@ by byte, skipping the ASCII case bit).
 test "get_header_case_insensitive tolerates any casing" {
   let headers : Map[String, String] = { "Content-Type": "application/json" }
   assert_eq(
-    @http.get_header_case_insensitive(headers, "content-type"),
+    @httputil.get_header_case_insensitive(headers, "content-type"),
     Some("application/json"),
   )
   assert_eq(
-    @http.get_header_case_insensitive(headers, "CONTENT-TYPE"),
+    @httputil.get_header_case_insensitive(headers, "CONTENT-TYPE"),
     Some("application/json"),
   )
-  assert_eq(@http.get_header_case_insensitive(headers, "Accept"), None)
+  assert_eq(@httputil.get_header_case_insensitive(headers, "Accept"), None)
 }
 ```
 
@@ -77,10 +77,12 @@ case-insensitively, so the map never ends up holding both `Content-Type`
 ///|
 test "set_header_case_insensitive replaces existing entry" {
   let headers : Map[String, String] = { "Content-Type": "text/html" }
-  @http.set_header_case_insensitive(headers, "content-type", "application/json")
+  @httputil.set_header_case_insensitive(
+    headers, "content-type", "application/json",
+  )
   assert_eq(headers.length(), 1)
   assert_eq(
-    @http.get_header_case_insensitive(headers, "Content-Type"),
+    @httputil.get_header_case_insensitive(headers, "Content-Type"),
     Some("application/json"),
   )
 }
@@ -96,12 +98,12 @@ value the handler already set:
 ///|
 test "set_missing_header_case_insensitive does not overwrite" {
   let headers : Map[String, String] = { "Content-Type": "text/html" }
-  @http.set_missing_header_case_insensitive(
+  @httputil.set_missing_header_case_insensitive(
     headers, "Content-Type", "application/json",
   )
   // original value preserved
   assert_eq(
-    @http.get_header_case_insensitive(headers, "Content-Type"),
+    @httputil.get_header_case_insensitive(headers, "Content-Type"),
     Some("text/html"),
   )
 }
@@ -118,11 +120,11 @@ is a no-op, and if the header doesn't exist yet, it is created.
 ///|
 test "append_token_case_insensitive deduplicates" {
   let headers : Map[String, String] = {}
-  @http.append_token_case_insensitive(headers, "Vary", "Origin")
-  @http.append_token_case_insensitive(headers, "Vary", "Origin") // duplicate, ignored
-  @http.append_token_case_insensitive(headers, "Vary", "Accept-Encoding")
+  @httputil.append_token_case_insensitive(headers, "Vary", "Origin")
+  @httputil.append_token_case_insensitive(headers, "Vary", "Origin") // duplicate, ignored
+  @httputil.append_token_case_insensitive(headers, "Vary", "Accept-Encoding")
   assert_eq(
-    @http.get_header_case_insensitive(headers, "Vary"),
+    @httputil.get_header_case_insensitive(headers, "Vary"),
     Some("Origin, Accept-Encoding"),
   )
 }
@@ -137,9 +139,9 @@ strings and form bodies:
 ```mbt check
 ///|
 test "url_encode escapes reserved characters" {
-  assert_eq(@http.url_encode("hello world"), "hello%20world")
-  assert_eq(@http.url_encode("a+b=c"), "a%2Bb%3Dc")
-  assert_eq(@http.url_encode("safe-._~"), "safe-._~")
+  assert_eq(@httputil.url_encode("hello world"), "hello%20world")
+  assert_eq(@httputil.url_encode("a+b=c"), "a%2Bb%3Dc")
+  assert_eq(@httputil.url_encode("safe-._~"), "safe-._~")
 }
 ```
 
@@ -150,8 +152,11 @@ inputs:
 ```mbt check
 ///|
 test "url_decode handles both + and %20" {
-  assert_eq(@http.url_decode(@utf8.encode("hello+world")[:]), "hello world")
-  assert_eq(@http.url_decode(@utf8.encode("hello%20world")[:]), "hello world")
+  assert_eq(@httputil.url_decode(@utf8.encode("hello+world")[:]), "hello world")
+  assert_eq(
+    @httputil.url_decode(@utf8.encode("hello%20world")[:]),
+    "hello world",
+  )
 }
 ```
 
@@ -162,7 +167,7 @@ map; `form_encode` is the inverse:
 ///|
 test "parse_form_data parses key=value pairs" {
   let body = @utf8.encode("name=alice&city=New%20York")
-  let form = @http.parse_form_data(body[:])
+  let form = @httputil.parse_form_data(body[:])
   assert_eq(form.get("name"), Some("alice"))
   assert_eq(form.get("city"), Some("New York"))
 }
@@ -179,9 +184,9 @@ fixed-width day numbers. `format_http_date` takes a Unix epoch timestamp
 ```mbt check
 ///|
 test "format_http_date produces RFC 1123 output" {
-  assert_eq(@http.format_http_date(0L), "Thu, 01 Jan 1970 00:00:00 GMT")
+  assert_eq(@httputil.format_http_date(0L), "Thu, 01 Jan 1970 00:00:00 GMT")
   assert_eq(
-    @http.format_http_date(1_709_251_199L),
+    @httputil.format_http_date(1_709_251_199L),
     "Thu, 29 Feb 2024 23:59:59 GMT",
   )
 }
@@ -195,11 +200,14 @@ deviation returns `None` rather than trying to guess. This matters for
 ```mbt check
 ///|
 test "parse_http_date rejects invalid input" {
-  assert_eq(@http.parse_http_date("Thu, 01 Jan 1970 00:00:00 GMT"), Some(0L))
+  assert_eq(
+    @httputil.parse_http_date("Thu, 01 Jan 1970 00:00:00 GMT"),
+    Some(0L),
+  )
   // 31 Feb is not a real day
-  assert_eq(@http.parse_http_date("Thu, 31 Feb 2024 00:00:00 GMT"), None)
+  assert_eq(@httputil.parse_http_date("Thu, 31 Feb 2024 00:00:00 GMT"), None)
   // random garbage
-  assert_eq(@http.parse_http_date("yesterday"), None)
+  assert_eq(@httputil.parse_http_date("yesterday"), None)
 }
 ```
 
@@ -223,17 +231,17 @@ test "parse_multipart extracts fields and files" {
     "PNGDATA\r\n" +
     "--B--"
   let bytes = @utf8.encode(body)
-  let parts = @http.parse_multipart(bytes[:], "B")
+  let parts = @httputil.parse_multipart(bytes[:], "B")
 
   // Simple text field
-  guard @http.first_multipart_value(parts, "field1") is Some(field1) else {
+  guard @httputil.first_multipart_value(parts, "field1") is Some(field1) else {
     fail("expected field1")
   }
   assert_eq(field1.filename, None)
   assert_eq(@utf8.decode(field1.data) catch { _ => "" }, "hello")
 
   // File upload
-  guard @http.first_multipart_value(parts, "avatar") is Some(avatar) else {
+  guard @httputil.first_multipart_value(parts, "avatar") is Some(avatar) else {
     fail("expected avatar")
   }
   assert_eq(avatar.filename, Some("a.png"))
@@ -273,16 +281,16 @@ complexity behind two pure functions that work on any form:
 ///|
 test "request_target_path handles every form" {
   // origin-form
-  assert_eq(@http.request_target_path("/search?q=hello"), "/search")
+  assert_eq(@httputil.request_target_path("/search?q=hello"), "/search")
   // absolute-form (proxy / HTTP/1.0)
   assert_eq(
-    @http.request_target_path("http://example.com/users/42"),
+    @httputil.request_target_path("http://example.com/users/42"),
     "/users/42",
   )
   // absolute-form with no path
-  assert_eq(@http.request_target_path("http://example.com"), "/")
+  assert_eq(@httputil.request_target_path("http://example.com"), "/")
   // query and fragment are both stripped from the path
-  assert_eq(@http.request_target_path("/page?q=1#frag"), "/page")
+  assert_eq(@httputil.request_target_path("/page?q=1#frag"), "/page")
 }
 ```
 
@@ -290,13 +298,13 @@ test "request_target_path handles every form" {
 ///|
 test "request_target_query_string separates the query" {
   assert_eq(
-    @http.request_target_query_string("/search?q=hello"),
+    @httputil.request_target_query_string("/search?q=hello"),
     Some("q=hello"),
   )
   // no query
-  assert_eq(@http.request_target_query_string("/"), None)
+  assert_eq(@httputil.request_target_query_string("/"), None)
   // fragment after query is stripped
-  assert_eq(@http.request_target_query_string("/a?x=1#frag"), Some("x=1"))
+  assert_eq(@httputil.request_target_query_string("/a?x=1#frag"), Some("x=1"))
 }
 ```
 
@@ -311,10 +319,10 @@ string-concatenating prefixes:
 ```mbt check
 ///|
 test "normalize_path collapses double slashes" {
-  assert_eq(@http.normalize_path("/a/b"), "/a/b")
-  assert_eq(@http.normalize_path("/a//b"), "/a/b")
-  assert_eq(@http.normalize_path("//foo"), "/foo")
-  assert_eq(@http.normalize_path("/a///b////c"), "/a/b/c")
+  assert_eq(@httputil.normalize_path("/a/b"), "/a/b")
+  assert_eq(@httputil.normalize_path("/a//b"), "/a/b")
+  assert_eq(@httputil.normalize_path("//foo"), "/foo")
+  assert_eq(@httputil.normalize_path("/a///b////c"), "/a/b/c")
 }
 ```
 
@@ -329,11 +337,11 @@ accidentally handling a sibling route:
 ```mbt check
 ///|
 test "path_scope_matches respects segment boundaries" {
-  assert_true(@http.path_scope_matches("/api", "/api"))
-  assert_true(@http.path_scope_matches("/api", "/api/users"))
+  assert_true(@httputil.path_scope_matches("/api", "/api"))
+  assert_true(@httputil.path_scope_matches("/api", "/api/users"))
   // '/apiX' is NOT under '/api' — different segment
-  assert_false(@http.path_scope_matches("/api", "/apiX"))
+  assert_false(@httputil.path_scope_matches("/api", "/apiX"))
   // the root scope matches everything
-  assert_true(@http.path_scope_matches("/", "/anything"))
+  assert_true(@httputil.path_scope_matches("/", "/anything"))
 }
 ```

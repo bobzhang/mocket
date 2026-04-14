@@ -209,7 +209,7 @@ pub impl Responder for StaticResolvedResponder with options(self, res) -> Unit {
   self.inner.options(res)
   if res.status_code == OK {
     self.asset_headers.each((key, value) => {
-      if !@mhttp.has_header_case_insensitive(res.headers, key) {
+      if !@httputil.has_header_case_insensitive(res.headers, key) {
         res.headers.set(key, value)
       }
     })
@@ -238,7 +238,8 @@ fn static_asset_headers(
     None => ()
   }
   match meta.mtime {
-    Some(mtime) => headers.set("Last-Modified", @mhttp.format_http_date(mtime))
+    Some(mtime) =>
+      headers.set("Last-Modified", @httputil.format_http_date(mtime))
     None => ()
   }
   match meta.asset_type {
@@ -269,13 +270,14 @@ fn static_not_modified_headers(
   response_headers : Map[String, String],
   meta : StaticAssetMeta,
 ) -> Map[String, String] {
-  let headers = @mhttp.copy_headers(response_headers)
+  let headers = @httputil.copy_headers(response_headers)
   match meta.etag {
     Some(etag) => headers.set("ETag", etag)
     None => ()
   }
   match meta.mtime {
-    Some(mtime) => headers.set("Last-Modified", @mhttp.format_http_date(mtime))
+    Some(mtime) =>
+      headers.set("Last-Modified", @httputil.format_http_date(mtime))
     None => ()
   }
   headers
@@ -283,7 +285,7 @@ fn static_not_modified_headers(
 
 ///|
 fn if_modified_since_matches(header_value : String, mtime : Int64) -> Bool {
-  match @mhttp.parse_http_date(header_value) {
+  match @httputil.parse_http_date(header_value) {
     Some(if_modified_since) => if_modified_since >= mtime
     None => false
   }
@@ -300,7 +302,7 @@ pub fn Mocket::static_assets(
   self.use_middleware(
     (event, next) => {
       let request_path = event.req.path()
-      if !@mhttp.path_scope_matches(mount_path, request_path) {
+      if !@httputil.path_scope_matches(mount_path, request_path) {
         return next()
       }
 
@@ -326,7 +328,7 @@ pub fn Mocket::static_assets(
       if !encodings.is_empty() {
         // Token-safe Vary append: don't clobber existing Vary values
         // (e.g. "Origin" from CORS middleware).
-        @mhttp.append_token_case_insensitive(
+        @httputil.append_token_case_insensitive(
           event.res.headers,
           "Vary",
           "Accept-Encoding",
@@ -434,9 +436,9 @@ pub fn Mocket::static_assets(
           }
           let asset_headers = static_asset_headers(provider, id, meta)
           if event.req.http_method == Head {
-            let head_headers = @mhttp.copy_headers(event.res.headers)
+            let head_headers = @httputil.copy_headers(event.res.headers)
             asset_headers.each((key, value) => {
-              if !@mhttp.has_header_case_insensitive(head_headers, key) {
+              if !@httputil.has_header_case_insensitive(head_headers, key) {
                 head_headers.set(key, value)
               }
             })

@@ -70,7 +70,7 @@ pub fn HttpRequest::path(self : HttpRequest) -> String {
   match self.cached_path {
     Some(p) => p
     None => {
-      let p = @mhttp.request_target_path(self.url)
+      let p = @httputil.request_target_path(self.url)
       self.cached_path = Some(p)
       p
     }
@@ -80,7 +80,7 @@ pub fn HttpRequest::path(self : HttpRequest) -> String {
 ///|
 /// Returns the raw query string from the request URL, or `None` if absent.
 pub fn HttpRequest::query_string(self : HttpRequest) -> String? {
-  @mhttp.request_target_query_string(self.url)
+  @httputil.request_target_query_string(self.url)
 }
 
 ///|
@@ -111,7 +111,7 @@ fn HttpRequest::cached_query(self : HttpRequest) -> Map[String, String] {
     Some(params) => params
     None => {
       let params : Map[String, String] = match self.query_string() {
-        Some(query) => @mhttp.parse_form_data(@utf8.encode(query)[:])
+        Some(query) => @httputil.parse_form_data(@utf8.encode(query)[:])
         None => {}
       }
       self.cached_query_params = Some(params)

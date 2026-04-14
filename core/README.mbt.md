@@ -100,7 +100,6 @@ test "query parameters are percent-decoded" {
       #|(Some("hello world"), Some("en"), None)
     ),
   )
-
 }
 ```
 
@@ -341,7 +340,23 @@ test "method round-trips through string" {
 }
 ```
 
-## Responder
+## Traits
+
+This package defines two open traits that drive polymorphic request and
+response handling: `Responder` (any value → HTTP response body) and
+`BodyReader` (request/response bytes → typed value). Both are `pub(open)`,
+so user code is free to add new implementations.
+
+### trait Responder
+
+```moonbit nocheck
+///|
+pub(open) trait Responder {
+  options(Self, HttpResponse) -> Unit
+  output(Self, Buffer) -> Unit
+  output_bytes(Self) -> Bytes?
+}
+```
 
 The `Responder` trait is the adapter between any MoonBit value and an HTTP
 response body. Handlers return `&Responder`, and the framework calls three
@@ -364,7 +379,7 @@ Built-in implementations:
 | `HttpRequest`           | Merges headers, forwards body (useful for proxying) |
 | `Html` (via `html()`)   | `text/html; charset=utf-8`                          |
 
-### String as a responder
+#### String as a responder
 
 The simplest handler just returns a string -- Crescent wraps it in the
 `Responder` impl that sets `text/plain`:
@@ -375,14 +390,14 @@ test "string responder sets text/plain" {
   let res = @core.HttpResponse(status_code=OK)
   let responder : &@core.Responder = "hello"
   responder.options(res)
-  inspect(
+  debug_inspect(
     res.headers.get("Content-Type"),
     content="Some(\"text/plain; charset=utf-8\")",
   )
 }
 ```
 
-### html() and text() helpers
+#### html() and text() helpers
 
 `html()` creates an `Html` responder that sets `text/html; charset=utf-8`.
 `text()` creates a plain-text responder. Both accept any `&Show` value:
@@ -403,7 +418,14 @@ test "html helper sets text/html content type" {
 }
 ```
 
-## BodyReader
+### trait BodyReader
+
+```moonbit nocheck
+///|
+pub(open) trait BodyReader {
+  from_request(HttpRequest) -> Self raise
+}
+```
 
 The `BodyReader` trait powers typed body deserialization for both requests and
 responses. Implement it for your own types to enable `req.body[MyType]()` and

@@ -73,7 +73,7 @@ a `StringView` without allocating a `String`. This can be applied in:
   `routes.get(path)` currently require `String` keys. Changing the route
   matching to use `get_from_string` with `StringView` would eliminate
   allocations in the hot path.
-- **Header lookup** (`http/headers.mbt`): Header name comparisons could
+- **Header lookup** (`httputil/headers.mbt`): Header name comparisons could
   use `StringView` instead of converting to `String` via `.to_lower()`.
 - **Middleware path matching**: `path_scope_matches` could take `StringView`.
 

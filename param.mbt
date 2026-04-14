@@ -17,7 +17,7 @@ pub fn MocketEvent::param(self : MocketEvent, name : String) -> String? {
 /// `/search/:query`, this returns `Some("hello world")`.
 pub fn MocketEvent::param_decoded(self : MocketEvent, name : String) -> String? {
   match self.params.get(name) {
-    Some(v) => Some(@mhttp.url_decode(@utf8.encode(v.to_string())[:]))
+    Some(v) => Some(@httputil.url_decode(@utf8.encode(v.to_string())[:]))
     None => None
   }
 }

@@ -80,7 +80,7 @@ pub fn[T : ToJson] HttpResponse::json_value(
   self : HttpResponse,
   value : T,
 ) -> HttpResponse {
-  @mhttp.set_header_case_insensitive(
+  @httputil.set_header_case_insensitive(
     self.headers,
     "Content-Type",
     "application/json; charset=utf-8",
@@ -100,7 +100,7 @@ pub fn HttpResponse::header(
   name : String,
   value : String,
 ) -> HttpResponse {
-  @mhttp.set_header_case_insensitive(self.headers, name, value)
+  @httputil.set_header_case_insensitive(self.headers, name, value)
   self
 }
 

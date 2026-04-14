@@ -491,6 +491,36 @@ Features: ETag caching, `If-Modified-Since` / `If-None-Match` support,
 `Accept-Encoding` content negotiation, path traversal protection,
 directory index fallback (`index.html`, `index.htm`, ...).
 
+### trait ServeStaticProvider
+
+```moonbit nocheck
+///|
+pub(open) trait ServeStaticProvider {
+  async get_meta(Self, String) -> StaticAssetMeta?
+  async get_contents(Self, String) -> &Responder
+  get_type(Self, String) -> String?
+  get_encodings(Self) -> Map[String, String]
+  get_index_names(Self) -> Array[String]
+  get_fallthrough(Self) -> Bool
+}
+```
+
+`static_assets` accepts any type that implements `ServeStaticProvider`. The
+bundled `@static_file.StaticFileProvider` serves from the filesystem, but
+custom providers can pull from S3, an embedded asset bundle, a zip file, a
+CDN cache, etc. The path argument to each method is the asset's URL path
+(already stripped of the mount prefix and resolved against any index
+filenames).
+
+| Method             | Purpose                                                        |
+| ------------------ | -------------------------------------------------------------- |
+| `get_meta`         | Resolve the path to asset metadata (size, mtime, ETag); `None` means "not found" |
+| `get_contents`     | Produce the response body for the resolved asset               |
+| `get_type`         | Return the `Content-Type` for the path (`None` skips the header) |
+| `get_encodings`    | Provider-wide `Content-Encoding` → variant suffix map (e.g. `gzip` → `.gz`) |
+| `get_index_names`  | Filenames to try when the request points at a directory        |
+| `get_fallthrough`  | If `true`, a miss falls through to the next route instead of 404 |
+
 ## Cookies
 
 ```moonbit nocheck
@@ -863,7 +893,7 @@ test "HttpMethod pattern matching" {
 
 ```
 bobzhang/crescent             — Core: routing, middleware, serving, WebSocket
-bobzhang/crescent/http        — HTTP protocol: headers, dates, URL encoding
+bobzhang/crescent/httputil    — HTTP protocol: headers, dates, URL encoding
 bobzhang/crescent/cors        — CORS middleware
 bobzhang/crescent/fetch       — HTTP client
 bobzhang/crescent/static_file — Static file provider (filesystem)

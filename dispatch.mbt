@@ -8,7 +8,7 @@ pub async fn Mocket::dispatch(
   headers : Map[String, String],
   body : Bytes,
 ) -> (StatusCode, Map[String, String], Bytes) {
-  let request_path = @mhttp.request_target_path(url)
+  let request_path = @httputil.request_target_path(url)
   // Look up route
   let (params, handler) = match
     self.lookup_http_route(http_method, request_path) {

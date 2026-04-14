@@ -26,7 +26,7 @@ fn resolve_allow_origin(
     // Reflect the request origin; browsers reject ACAO:* with credentials.
     // Always set Vary: Origin so caches don't serve the wrong origin, even
     // when the request has no Origin (in which case we fall back to "*").
-    @mhttp.append_token_case_insensitive(event.res.headers, "Vary", "Origin")
+    @httputil.append_token_case_insensitive(event.res.headers, "Vary", "Origin")
     match event.req.get_header("origin") {
       Some(origin) => origin
       None => "*" // fallback; browser will reject but we did our best

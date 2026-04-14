@@ -23,7 +23,7 @@ web programming. Every web concept is introduced before it is used.
 9. [Middleware: Cross-Cutting Concerns (`middleware.mbt`)](#9-middleware-cross-cutting-concerns)
 10. [Responder: Polymorphic Responses (`responder.mbt`)](#10-responder-polymorphic-responses)
 11. [Typed Handlers and Error Mapping (`typed_handler.mbt`)](#11-typed-handlers-and-error-mapping)
-12. [HTTP Utilities (`http/`)](#12-http-utilities)
+12. [HTTP Utilities (`httputil/`)](#12-http-utilities)
 13. [WebSocket: Persistent Bidirectional Channels](#13-websocket-persistent-bidirectional-channels)
 14. [Native Server Runtime (`serve_async.native.mbt`)](#14-native-server-runtime)
 15. [Sub-Packages](#15-sub-packages)
@@ -221,7 +221,7 @@ graph TB
 
     subgraph "Sub-Packages"
         ROUTER["router/<br/>RadixTree"]
-        HTTP["http/<br/>Utilities"]
+        HTTP["httputil/<br/>Utilities"]
         COOKIE["cookie/<br/>Parsing"]
         CORS["cors/<br/>Middleware"]
         MIDDLEWARE["middleware/<br/>Rate Limit, Security, RequestID"]
@@ -285,7 +285,7 @@ independently testable.
 graph LR
     ROOT["<b>root</b><br/>bobzhang/crescent"]
     ROUTER["router/"]
-    HTTP["http/"]
+    HTTP["httputil/"]
     COOKIE["cookie/"]
     URI["uri/"]
     CORS["cors/"]
@@ -899,7 +899,7 @@ etc.) to the outside world.
 
 ## 12. HTTP Utilities
 
-**Directory:** `http/`
+**Directory:** `httputil/`
 **Dependencies:** `moonbitlang/core/{utf8, strconv, string}` only
 
 This package provides the low-level building blocks used by the root package and
@@ -918,7 +918,7 @@ as a standalone HTTP utility library.
 
 As mentioned in [Section 1](#key-concepts), HTTP header names are
 case-insensitive. `Content-Type`, `content-type`, and `CONTENT-TYPE` all refer
-to the same header. The `http/` package enforces this by lowercasing keys
+to the same header. The `httputil/` package enforces this by lowercasing keys
 during comparison. Key functions:
 
 - `get_header_case_insensitive(headers, name)` -- lookup
@@ -1221,7 +1221,7 @@ middleware ordering, response serialization, and error mapping in milliseconds.
 | Route matching          | 2     | ~26   | `path_match.mbt`, `radix_tree_test.mbt`|
 | Route compilation       | 1     | ~14   | `route_pattern_test.mbt`               |
 | Responder               | 1     | ~20   | `responder_test.mbt`                   |
-| HTTP utilities          | 4     | ~50   | `http/*_test.mbt`                      |
+| HTTP utilities          | 4     | ~50   | `httputil/*_test.mbt`                      |
 | Middleware               | 3     | ~10   | `middleware/*_test.mbt`                 |
 | CORS                    | 1     | ~10   | `cors/cors_test.mbt`                   |
 | Fullstack (AI-friendly) | 1     | ~15   | `fullstack_test.mbt`                   |
@@ -1278,7 +1278,7 @@ responsibility:
 | `typed_handler.mbt`        | 233   | Error-wrapping handlers, typed `get/post/...` |
 | `path_match.mbt`           | 356   | Route lookup, allowed methods, WS routing     |
 | `http_method.mbt`          | 57    | `HttpMethod` enum (Get, Post, Put, ...)       |
-| `http_headers.mbt`         | 5     | Header helper (delegates to `http/`)          |
+| `http_headers.mbt`         | 5     | Header helper (delegates to `httputil/`)          |
 | `status_code.mbt`          | 354   | Complete HTTP `StatusCode` enum               |
 | `param.mbt`                | 115   | Route parameter extraction helpers            |
 | `redirect.mbt`             | 31    | Redirect helper functions                     |
