@@ -12,6 +12,17 @@ fn hex_digit(b : Byte) -> Int? {
 }
 
 ///|
+/// Decodes a percent-encoded URL text slice into a UTF-8 string.
+///
+/// Convenience wrapper around `url_decode` for callers that already have a
+/// `StringView` (path segments, query strings, route params). RFC 3986 mandates
+/// percent-encoding for any non-ASCII byte, so the view is encoded back to
+/// UTF-8 bytes once before decoding.
+pub fn url_decode_str(view : StringView) -> String {
+  url_decode(@utf8.encode(view.to_string())[:])
+}
+
+///|
 /// Decodes a percent-encoded URL byte sequence into a UTF-8 string.
 pub fn url_decode(bytes : BytesView) -> String {
   let len = bytes.length()
@@ -48,6 +59,15 @@ pub fn url_decode(bytes : BytesView) -> String {
   @utf8.decode(view) catch {
     _ => ""
   }
+}
+
+///|
+/// Parses URL-encoded form data from a text slice into a map of key-value pairs.
+///
+/// Convenience wrapper around `parse_form_data` for callers that already have a
+/// `StringView` (typically a query string pulled from a parsed URI).
+pub fn parse_form_data_str(view : StringView) -> Map[String, String] {
+  parse_form_data(@utf8.encode(view.to_string())[:])
 }
 
 ///|

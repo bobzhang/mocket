@@ -43,6 +43,22 @@ test "parse_form_data" {
 }
 
 ///|
+test "url_decode_str matches url_decode for ASCII-percent-encoded input" {
+  // RFC 3986 guarantees percent-encoded URLs are ASCII; the StringView wrapper
+  // should produce the same output as the byte-oriented version.
+  assert_eq(url_decode_str("Hello%20World%21"), "Hello World!")
+  assert_eq(url_decode_str("Hello+World"), "Hello World")
+  assert_eq(url_decode_str("%E4%BD%A0%E5%A5%BD"), "你好")
+}
+
+///|
+test "parse_form_data_str matches parse_form_data" {
+  let map = parse_form_data_str("key=value&foo=bar%20baz")
+  assert_eq(map.get("key"), Some("value"))
+  assert_eq(map.get("foo"), Some("bar baz"))
+}
+
+///|
 test "parse_multipart" {
   let boundary = "boundary"
   let body = "--boundary\r\nContent-Disposition: form-data; name=\"field1\"\r\n\r\nvalue1\r\n--boundary\r\nContent-Disposition: form-data; name=\"field2\"; filename=\"example.txt\"\r\nContent-Type: text/plain\r\n\r\nvalue2\r\n--boundary--"

@@ -22,6 +22,8 @@ pub fn normalize_path(String) -> String
 
 pub fn parse_form_data(BytesView) -> Map[String, String]
 
+pub fn parse_form_data_str(StringView) -> Map[String, String]
+
 pub fn parse_http_date(StringView) -> Int64?
 
 pub fn parse_multipart(BytesView, String) -> Map[String, Array[MultipartFormValue]]
@@ -37,6 +39,8 @@ pub fn set_header_case_insensitive(Map[String, String], String, String) -> Unit
 pub fn set_missing_header_case_insensitive(Map[String, String], String, String) -> Unit
 
 pub fn url_decode(BytesView) -> String
+
+pub fn url_decode_str(StringView) -> String
 
 pub fn url_encode(String) -> String
 

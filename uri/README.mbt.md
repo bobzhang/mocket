@@ -44,7 +44,7 @@ scale, where every request parses a fresh URI.
 **Percent-encoding is preserved.** The parser does *not* decode `%20` into
 a space or `%E4%BD%A0` into `你`. The returned path segments, query, and
 fragment contain the original characters verbatim. If you need decoded text,
-run it through `@http.url_decode` after pulling the slice out. Why?
+run it through `@httputil.url_decode_str` after pulling the slice out. Why?
 Because decoding loses information — `/foo%2Fbar` (one segment containing a
 slash) and `/foo/bar` (two segments) are meaningfully different.
 
@@ -312,8 +312,8 @@ test "ParseError surfaces as a Result" {
 ## What This Package Doesn't Do
 
 - **No URL building / serialization.** `Uri` has no `to_string()`. If you
-  need to construct URLs, use a buffer and `@http.url_encode`.
-- **No percent decoding.** Use `@http.url_decode` on the `StringView`
+  need to construct URLs, use a buffer and `@httputil.url_encode`.
+- **No percent decoding.** Use `@httputil.url_decode_str` on the `StringView`
   slices once you're ready to consume them as text.
 - **No reference resolution.** Relative references like `../foo` are
   parsed verbatim; applying them to a base URI (the §5.3 algorithm) is

@@ -3,11 +3,8 @@
 ///
 /// The value is NOT URL-decoded — it's returned exactly as it appeared in the URL.
 /// For a decoded value (e.g. `hello%20world` → `hello world`), use `param_decoded()`.
-pub fn MocketEvent::param(self : MocketEvent, name : String) -> String? {
-  match self.params.get(name) {
-    Some(v) => Some(v.to_string())
-    None => None
-  }
+pub fn MocketEvent::param(self : MocketEvent, name : String) -> StringView? {
+  self.params.get(name)
 }
 
 ///|
@@ -17,7 +14,7 @@ pub fn MocketEvent::param(self : MocketEvent, name : String) -> String? {
 /// `/search/:query`, this returns `Some("hello world")`.
 pub fn MocketEvent::param_decoded(self : MocketEvent, name : String) -> String? {
   match self.params.get(name) {
-    Some(v) => Some(@httputil.url_decode(@utf8.encode(v.to_string())[:]))
+    Some(v) => Some(@httputil.url_decode_str(v))
     None => None
   }
 }

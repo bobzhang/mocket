@@ -111,7 +111,7 @@ fn HttpRequest::cached_query(self : HttpRequest) -> Map[String, String] {
     Some(params) => params
     None => {
       let params : Map[String, String] = match self.query_string() {
-        Some(query) => @httputil.parse_form_data(@utf8.encode(query)[:])
+        Some(query) => @httputil.parse_form_data_str(query[:])
         None => {}
       }
       self.cached_query_params = Some(params)

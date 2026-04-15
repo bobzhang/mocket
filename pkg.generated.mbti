@@ -96,7 +96,7 @@ pub(all) struct MocketEvent {
   params : Map[String, StringView]
 }
 pub fn[T : @json.FromJson] MocketEvent::json(Self) -> T raise
-pub fn MocketEvent::param(Self, String) -> String?
+pub fn MocketEvent::param(Self, String) -> StringView?
 pub fn MocketEvent::param_decoded(Self, String) -> String?
 pub fn MocketEvent::param_int(Self, String) -> Int?
 pub fn MocketEvent::param_int64(Self, String) -> Int64?

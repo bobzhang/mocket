@@ -46,7 +46,7 @@ Because it exists solely for test code, most packages pull it in under a
 
 ```
 import {
-  "bobzhang/crescent/test_client" @test_client,
+  "bobzhang/crescent/test_client",
 } for "test"
 ```
 

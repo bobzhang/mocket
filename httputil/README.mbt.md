@@ -160,6 +160,22 @@ test "url_decode handles both + and %20" {
 }
 ```
 
+`url_decode` is byte-oriented because percent-encoded URLs are byte streams
+(the encoded form `%E4%BD%A0` represents three raw UTF-8 bytes that *together*
+make `你`). For callers that already hold a `StringView` — query strings,
+URI path segments, route params — `url_decode_str` is a one-line wrapper that
+re-encodes once and dispatches to `url_decode`:
+
+```mbt check
+///|
+test "url_decode_str takes a StringView directly" {
+  assert_eq(@httputil.url_decode_str("hello%20world"), "hello world")
+  // RFC 3986 mandates non-ASCII bytes are percent-escaped, so the wrapper
+  // round-trips multi-byte sequences correctly:
+  assert_eq(@httputil.url_decode_str("%E4%BD%A0%E5%A5%BD"), "你好")
+}
+```
+
 `parse_form_data` splits an `application/x-www-form-urlencoded` body into a
 map; `form_encode` is the inverse:
 
@@ -168,6 +184,18 @@ map; `form_encode` is the inverse:
 test "parse_form_data parses key=value pairs" {
   let body = @utf8.encode("name=alice&city=New%20York")
   let form = @httputil.parse_form_data(body[:])
+  assert_eq(form.get("name"), Some("alice"))
+  assert_eq(form.get("city"), Some("New York"))
+}
+```
+
+`parse_form_data_str` is the matching `StringView` wrapper for callers that
+have a query string in hand (e.g. from a parsed URI):
+
+```mbt check
+///|
+test "parse_form_data_str takes a StringView" {
+  let form = @httputil.parse_form_data_str("name=alice&city=New%20York")
   assert_eq(form.get("name"), Some("alice"))
   assert_eq(form.get("city"), Some("New York"))
 }
