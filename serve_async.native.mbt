@@ -656,20 +656,17 @@ async fn handle_request_async(
     false
   }
   if websocket_like_request {
-    let websocket_max_message_bytes = resolve_native_websocket_max_message_bytes(
-      options,
-    )
+    let websocket_max_message_bytes = options.websocket_max_message_bytes
     let websocket_outgoing_queue_capacity = match
-      resolve_native_websocket_outgoing_queue_capacity(options) {
+      options.websocket_outgoing_queue_capacity {
       Some(capacity) => capacity
       None => DEFAULT_NATIVE_WS_OUTGOING_QUEUE_CAPACITY
     }
-    let websocket_overflow_policy = resolve_native_websocket_overflow_policy(
-      options,
-    )
-    let websocket_read_timeout_ms = resolve_native_websocket_read_timeout_ms(
-      options,
-    )
+    let websocket_overflow_policy = match options.websocket_overflow_policy {
+      Some(policy) => policy
+      None => DropOldest
+    }
+    let websocket_read_timeout_ms = options.websocket_read_timeout_ms
     match app.find_ws_route(request_path) {
       Some((ws_handler, route_params)) => {
         // Convert StringView params to owned Strings for the peer
@@ -705,10 +702,8 @@ async fn handle_request_async(
     request.meth is (Get | Head | Delete | Options | Trace) {
     b""
   } else {
-    let max_request_body_bytes = resolve_native_max_request_body_bytes(options)
-    let request_body_read_timeout_ms = resolve_native_request_body_read_timeout_ms(
-      options,
-    )
+    let max_request_body_bytes = options.max_request_body_bytes
+    let request_body_read_timeout_ms = options.request_body_read_timeout_ms
     match
       read_request_body_with_policy_async(
         request, body_reader, conn, max_request_body_bytes, request_body_read_timeout_ms,
@@ -738,7 +733,7 @@ async fn handle_request_async(
     res: HttpResponse(status_code=OK),
     params,
   }
-  match resolve_native_handler_timeout_ms(options) {
+  match options.handler_timeout_ms {
     Some(timeout_ms) =>
       // Timeout wraps only handler execution, not response transmission.
       // This prevents corrupting an in-flight HTTP response if the timeout fires.
@@ -764,15 +759,7 @@ async fn run_native_server(
   server : @http.Server,
   options : NativeServeOptions,
 ) -> Unit raise Error {
-  let max_connections = resolve_native_max_connections(options)
-  let _ = resolve_native_max_request_body_bytes(options)
-  let _ = resolve_native_request_body_read_timeout_ms(options)
-  let _ = resolve_native_handler_timeout_ms(options)
-  let _ = resolve_native_websocket_max_message_bytes(options)
-  let _ = resolve_native_websocket_outgoing_queue_capacity(options)
-  let _ = resolve_native_websocket_overflow_policy(options)
-  let _ = resolve_native_websocket_read_timeout_ms(options)
-  match max_connections {
+  match options.max_connections {
     Some(max_connections) =>
       server.run_forever(allow_failure=true, max_connections~, (
         request,
@@ -839,17 +826,8 @@ pub async fn Mocket::serve_on_until(
 ) -> Unit {
   let ws_runtime_id = next_ws_serve_runtime_id(self)
   defer cleanup_native_ws_runtime(ws_runtime_id)
-  match resolve_native_shutdown_timeout_ms(options) {
+  match options.shutdown_timeout_ms {
     Some(timeout_ms) => {
-      // Fail-fast: validate all options before starting the server
-      let max_connections = resolve_native_max_connections(options)
-      let _ = resolve_native_max_request_body_bytes(options)
-      let _ = resolve_native_request_body_read_timeout_ms(options)
-      let _ = resolve_native_handler_timeout_ms(options)
-      let _ = resolve_native_websocket_max_message_bytes(options)
-      let _ = resolve_native_websocket_outgoing_queue_capacity(options)
-      let _ = resolve_native_websocket_overflow_policy(options)
-      let _ = resolve_native_websocket_read_timeout_ms(options)
       // Graceful shutdown with manual accept loop.
       // Architecture: inner task group tracks handler tasks; outer group
       // provides the cancellation boundary for the hard timeout.
@@ -860,7 +838,7 @@ pub async fn Mocket::serve_on_until(
       // 3. Accept loop exits (accept fails after close).
       // 4. Inner group waits for handler tasks to finish current requests.
       // 5. Hard timeout (started AFTER shutdown) cancels everything.
-      let sem : @async.Semaphore? = match max_connections {
+      let sem : @async.Semaphore? = match options.max_connections {
         Some(n) => Some(@async.Semaphore::new(n))
         None => None
       }
@@ -966,13 +944,6 @@ pub async fn Mocket::serve(
   port~ : Int,
   options? : NativeServeOptions = NativeServeOptions(),
 ) -> Unit raise Error {
-  let _ = resolve_native_max_connections(options)
-  let _ = resolve_native_max_request_body_bytes(options)
-  let _ = resolve_native_request_body_read_timeout_ms(options)
-  let _ = resolve_native_websocket_max_message_bytes(options)
-  let _ = resolve_native_websocket_outgoing_queue_capacity(options)
-  let _ = resolve_native_websocket_overflow_policy(options)
-  let _ = resolve_native_websocket_read_timeout_ms(options)
   let addr = @socket.Addr::parse("0.0.0.0:\{port}")
   let server = @http.Server(addr, reuse_addr=true)
   self.serve_on(server, options~)
@@ -1006,13 +977,6 @@ pub async fn Mocket::serve_until(
   shutdown : @async.Queue[Unit],
   options? : NativeServeOptions = NativeServeOptions(),
 ) -> Unit raise Error {
-  let _ = resolve_native_max_connections(options)
-  let _ = resolve_native_max_request_body_bytes(options)
-  let _ = resolve_native_request_body_read_timeout_ms(options)
-  let _ = resolve_native_websocket_max_message_bytes(options)
-  let _ = resolve_native_websocket_outgoing_queue_capacity(options)
-  let _ = resolve_native_websocket_overflow_policy(options)
-  let _ = resolve_native_websocket_read_timeout_ms(options)
   let addr = @socket.Addr::parse("0.0.0.0:\{port}")
   let server = @http.Server(addr, reuse_addr=true)
   self.serve_on_until(server, shutdown, options~)
