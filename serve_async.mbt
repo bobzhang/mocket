@@ -381,7 +381,7 @@ async fn send_response_async(
   conn : @http.ServerConnection,
   response : HttpResponse,
   responder : &Responder,
-) -> Unit raise {
+) -> Unit {
   responder.options(response)
   // Fast path: use output_bytes to avoid buffer allocation when possible
   match responder.output_bytes() {
@@ -422,7 +422,7 @@ async fn send_response_and_close_async(
   request : @http.Request,
   conn : @http.ServerConnection,
   response : HttpResponse,
-) -> Unit raise {
+) -> Unit {
   let headers = response.headers
   append_cookie_headers(headers, response.cookies)
   if !@httputil.has_header_case_insensitive(headers, "Date") {
@@ -452,7 +452,7 @@ async fn send_response_and_close_async(
 async fn send_request_entity_too_large_async(
   request : @http.Request,
   conn : @http.ServerConnection,
-) -> Unit raise {
+) -> Unit {
   let response = HttpResponse(status_code=RequestEntityTooLarge).body(
     "Request Entity Too Large",
   )
@@ -464,7 +464,7 @@ async fn send_request_entity_too_large_async(
 async fn send_request_timeout_async(
   request : @http.Request,
   conn : @http.ServerConnection,
-) -> Unit raise {
+) -> Unit {
   let response = HttpResponse(status_code=RequestTimeout).body(
     "Request Timeout",
   )
@@ -476,7 +476,7 @@ async fn send_request_timeout_async(
 async fn send_not_found_async(
   request : @http.Request,
   conn : @http.ServerConnection,
-) -> Unit raise {
+) -> Unit {
   let response = HttpResponse(status_code=NotFound).body("Not Found")
   response.headers.set("Content-Type", "text/plain; charset=utf-8")
   send_response_and_close_async(request, conn, response)
@@ -486,7 +486,7 @@ async fn send_not_found_async(
 async fn send_gateway_timeout_async(
   request : @http.Request,
   conn : @http.ServerConnection,
-) -> Unit raise {
+) -> Unit {
   let response = HttpResponse(status_code=GatewayTimeout).body(
     "Gateway Timeout",
   )
@@ -576,7 +576,7 @@ async fn read_request_body_async(
   body_reader : &@io.Reader,
   conn : @http.ServerConnection,
   max_request_body_bytes : Int?,
-) -> RequestBodyReadOutcome raise {
+) -> RequestBodyReadOutcome {
   match max_request_body_bytes {
     None => Body(body_reader.read_all().binary())
     Some(limit) => {
@@ -612,7 +612,7 @@ async fn read_request_body_with_policy_async(
   conn : @http.ServerConnection,
   max_request_body_bytes : Int?,
   request_body_read_timeout_ms : Int?,
-) -> RequestBodyReadOutcome raise {
+) -> RequestBodyReadOutcome {
   match request_body_read_timeout_ms {
     Some(request_body_read_timeout_ms) =>
       match
@@ -635,19 +635,19 @@ async fn read_request_body_with_policy_async(
 }
 
 ///|
-async fn handle_request_async(
-  app : Mocket,
+async fn Mocket::handle_request(
+  self : Mocket,
   ws_runtime_id : String,
   request : @http.Request,
   body_reader : &@io.Reader,
   conn : @http.ServerConnection,
   options : NativeServeOptions,
-) -> Unit raise {
+) -> Unit {
   let request_path = @httputil.request_target_path(request.path)
   let strict_websocket_upgrade = is_websocket_upgrade_request(request)
   // Skip expensive WebSocket handshake inspection when no WS routes exist
-  let has_ws_routes = !app.ws_static_routes.is_empty() ||
-    !app.ws_dynamic_routes.is_empty()
+  let has_ws_routes = !self.ws_static_routes.is_empty() ||
+    !self.ws_dynamic_routes.is_empty()
   let websocket_like_request = if strict_websocket_upgrade {
     true
   } else if has_ws_routes {
@@ -657,17 +657,14 @@ async fn handle_request_async(
   }
   if websocket_like_request {
     let websocket_max_message_bytes = options.websocket_max_message_bytes
-    let websocket_outgoing_queue_capacity = match
-      options.websocket_outgoing_queue_capacity {
-      Some(capacity) => capacity
-      None => DEFAULT_NATIVE_WS_OUTGOING_QUEUE_CAPACITY
-    }
-    let websocket_overflow_policy = match options.websocket_overflow_policy {
-      Some(policy) => policy
-      None => DropOldest
-    }
+    let websocket_outgoing_queue_capacity = options.websocket_outgoing_queue_capacity.unwrap_or(
+      DEFAULT_NATIVE_WS_OUTGOING_QUEUE_CAPACITY,
+    )
+    let websocket_overflow_policy = options.websocket_overflow_policy.unwrap_or(
+      DropOldest,
+    )
     let websocket_read_timeout_ms = options.websocket_read_timeout_ms
-    match app.find_ws_route(request_path) {
+    match self.find_ws_route(request_path) {
       Some((ws_handler, route_params)) => {
         // Convert StringView params to owned Strings for the peer
         let ws_params : Map[String, String] = {}
@@ -713,12 +710,12 @@ async fn handle_request_async(
     }
   }
   let (params, handler) = match
-    app.lookup_http_route(http_method_text, request_path) {
+    self.lookup_http_route(http_method_text, request_path) {
     Found(matched_handler, matched_params) => (matched_params, matched_handler)
     MethodNotAllowed(allow) => ({}, method_not_allowed_handler(allow))
     Options(allow) => ({}, options_handler(allow))
     NotFound =>
-      match app.not_found_handler {
+      match self.not_found_handler {
         Some(handler) => ({}, handler)
         None => ({}, handle_not_found())
       }
@@ -739,14 +736,14 @@ async fn handle_request_async(
       // This prevents corrupting an in-flight HTTP response if the timeout fires.
       match
         @async.with_timeout_opt(timeout_ms, () => {
-          execute_middlewares(app.middlewares, event, handler)
+          execute_middlewares(self.middlewares, event, handler)
         }) {
         Some(responder) =>
           send_response_async(request, conn, event.res, responder)
         None => send_gateway_timeout_async(request, conn)
       }
     None => {
-      let responder = execute_middlewares(app.middlewares, event, handler)
+      let responder = execute_middlewares(self.middlewares, event, handler)
       send_response_async(request, conn, event.res, responder)
     }
   }
@@ -758,7 +755,7 @@ async fn run_native_server(
   ws_runtime_id : String,
   server : @http.Server,
   options : NativeServeOptions,
-) -> Unit raise {
+) -> Unit {
   match options.max_connections {
     Some(max_connections) =>
       server.run_forever(allow_failure=true, max_connections~, (
@@ -766,15 +763,11 @@ async fn run_native_server(
         body_reader,
         conn,
       ) => {
-        handle_request_async(
-          app, ws_runtime_id, request, body_reader, conn, options,
-        )
+        app.handle_request(ws_runtime_id, request, body_reader, conn, options)
       })
     None =>
       server.run_forever(allow_failure=true, (request, body_reader, conn) => {
-        handle_request_async(
-          app, ws_runtime_id, request, body_reader, conn, options,
-        )
+        app.handle_request(ws_runtime_id, request, body_reader, conn, options)
       })
   }
 }
@@ -867,8 +860,8 @@ pub async fn Mocket::serve_on(
                           match req_result {
                             Ok(request) => {
                               let body_reader : &@io.Reader = conn
-                              handle_request_async(
-                                self, ws_runtime_id, request, body_reader, conn, options,
+                              self.handle_request(
+                                ws_runtime_id, request, body_reader, conn, options,
                               ) catch {
                                 _ => {
                                   conn.close()
@@ -939,7 +932,7 @@ pub async fn Mocket::serve(
   port~ : Int,
   shutdown? : @async.Queue[Unit],
   options? : NativeServeOptions = NativeServeOptions(),
-) -> Unit raise {
+) -> Unit {
   let addr = @socket.Addr::parse("0.0.0.0:\{port}")
   let server = @http.Server(addr, reuse_addr=true)
   self.serve_on(server, shutdown?, options~)
