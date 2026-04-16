@@ -1262,32 +1262,33 @@ middleware ordering, response serialization, and error mapping in milliseconds.
 For quick navigation, every source file in the root package and its primary
 responsibility:
 
-| File                        | Lines | Responsibility                                |
-|-----------------------------|-------|-----------------------------------------------|
-| `index.mbt`                | 254   | `Mocket` struct, route registration, groups   |
-| `dispatch.mbt`             | 43    | `dispatch()` -- synthetic request pipeline    |
-| `handler.mbt`              | 3     | `HttpHandler` type alias                      |
-| `middleware.mbt`            | 231   | `Middleware` type, onion chain execution       |
-| `event.mbt`                | 30    | `MocketEvent` struct, JSON/param helpers      |
-| `request.mbt`              | 325   | `HttpRequest`, `BodyReader` trait, parsing     |
-| `response.mbt`             | 153   | `HttpResponse`, body/json/cookie methods      |
-| `response_helpers.mbt`     | 65    | `ok()`, `created()`, `error()`, etc.          |
-| `responder.mbt`            | 183   | `Responder` trait, built-in impls             |
-| `typed_handler.mbt`        | 233   | Error-wrapping handlers, typed `get/post/...` |
-| `path_match.mbt`           | 356   | Route lookup, allowed methods, WS routing     |
-| `http_method.mbt`          | 57    | `HttpMethod` enum (Get, Post, Put, ...)       |
-| `http_headers.mbt`         | 5     | Header helper (delegates to `httputil/`)          |
-| `status_code.mbt`          | 354   | Complete HTTP `StatusCode` enum               |
-| `param.mbt`                | 115   | Route parameter extraction helpers            |
-| `redirect.mbt`             | 31    | Redirect helper functions                     |
-| `not_found.mbt`            | 4     | Default 404 handler                           |
-| `resource.mbt`             | 63    | RESTful `resource()` CRUD registration        |
-| ~~`test_client.mbt`~~      |       | *(moved to `test_client/` sub-package)*       |
-| ~~`fetch.mbt`~~            |       | *(moved to `fetch/` sub-package)*             |
-| `static.mbt`               | 446   | `ServeStaticProvider` trait, asset serving     |
-| `websocket.mbt`            | 109   | `WebSocketPeer`, events, handler type         |
-| `websocket_async.mbt` | 496 | Native WS hub, pub/sub, connection mgmt       |
-| `serve_options.mbt`        | 499   | `NativeServeOptions`, validation              |
-| `serve_async.mbt`          | 946   | Native server runtime, connection handling    |
-| ~~`fetch.native.mbt`~~     |       | *(moved to `fetch/` sub-package)*             |
-| `error.mbt`                | 11    | Error type definitions                        |
+| File                         | Lines | Responsibility                                |
+|------------------------------|-------|-----------------------------------------------|
+| `index.mbt`                  | 260   | `Mocket` struct, route registration, groups   |
+| `dispatch.mbt`               | 43    | `dispatch()` -- synthetic request pipeline    |
+| `handler.mbt`                | 3     | `HttpHandler` type alias                      |
+| `middleware.mbt`             | 233   | `Middleware` type, onion chain execution      |
+| `event.mbt`                  | 33    | `MocketEvent` struct, JSON/param helpers      |
+| `typed_handler.mbt`          | 233   | Error-wrapping handlers, typed `get/post/...` |
+| `path_match.mbt`             | 342   | Route lookup, allowed methods, WS routing     |
+| `param.mbt`                  | 112   | Route parameter extraction helpers            |
+| `not_found.mbt`              | 4     | Default 404 handler                           |
+| `resource.mbt`               | 63    | RESTful `resource()` CRUD registration        |
+| `static.mbt`                 | 454   | `ServeStaticProvider` trait, asset serving    |
+| `websocket.mbt`              | 112   | `WebSocketPeer`, events, handler type         |
+| `websocket_async.mbt`        | 496   | Native WS hub, pub/sub, connection mgmt       |
+| `serve_options.mbt`          | 267   | `NativeServeOptions`, validation              |
+| `serve_async.mbt`            | 946   | Native server runtime, connection handling    |
+| `error.mbt`                  | 11    | Error type definitions                        |
+| `core_reexports.mbt`         | 12    | Re-exports from `core/` for back-compat       |
+| ~~`request.mbt`~~            |       | *(moved to `core/` sub-package)*              |
+| ~~`response.mbt`~~           |       | *(moved to `core/` sub-package)*              |
+| ~~`response_helpers.mbt`~~   |       | *(moved to `core/` sub-package)*              |
+| ~~`responder.mbt`~~          |       | *(moved to `core/` sub-package)*              |
+| ~~`http_method.mbt`~~        |       | *(moved to `core/` sub-package)*              |
+| ~~`http_headers.mbt`~~       |       | *(moved to `core/` sub-package)*              |
+| ~~`status_code.mbt`~~        |       | *(moved to `core/` sub-package)*              |
+| ~~`redirect.mbt`~~           |       | *(moved to `core/` sub-package)*              |
+| ~~`test_client.mbt`~~        |       | *(moved to `test_client/` sub-package)*       |
+| ~~`fetch.mbt`~~              |       | *(moved to `fetch/` sub-package)*             |
+| ~~`fetch.native.mbt`~~       |       | *(moved to `fetch/` sub-package)*             |

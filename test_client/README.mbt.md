@@ -213,5 +213,5 @@ request:
 
 The only thing that *isn't* exercised is the socket I/O layer —
 connection handling, keep-alive, and HTTP framing live in
-`serve_async.native.mbt` and are out of scope here. For coverage of
+`serve_async.mbt` and are out of scope here. For coverage of
 those, see the integration tests that start a real listener.
