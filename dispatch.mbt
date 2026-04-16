@@ -42,9 +42,19 @@ pub async fn Mocket::dispatch(
   // Serialize cookies into Set-Cookie headers, matching the live server path
   // in send_response_async. Without this, TestClient silently drops cookies.
   append_cookie_headers(event.res.headers, event.res.cookies)
-  // HEAD responses carry headers (including Content-Length from any body the
-  // handler produced) but no body bytes on the wire. Match that here so
-  // TestClient sees the same shape the real server would send.
-  let body = if http_method == "HEAD" { b"" } else { event.res.raw_body }
+  // HEAD responses carry headers but no body bytes on the wire. Match the
+  // live send_raw_response_async path: synthesize Content-Length from the
+  // materialized body (unless the handler already set it), THEN drop the
+  // body. TestClient callers can still assert on Content-Length.
+  let body = if http_method == "HEAD" {
+    if !@httputil.has_header_case_insensitive(event.res.headers, "Content-Length") {
+      event.res.headers.set(
+        "Content-Length", event.res.raw_body.length().to_string(),
+      )
+    }
+    b""
+  } else {
+    event.res.raw_body
+  }
   (event.res.status_code, event.res.headers, body)
 }
