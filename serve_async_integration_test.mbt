@@ -1782,9 +1782,9 @@ async test "serve_on_until rejects negative max_request_body_bytes" {
   let server = allocate_test_server()
   defer server.close()
   let shutdown = @async.Queue::new(kind=Unbounded)
-  let result : Result[Unit, Error] = try? app.serve_on_until(
+  let result : Result[Unit, Error] = try? app.serve_on(
     server,
-    shutdown,
+    shutdown~,
     options=NativeServeOptions(max_request_body_bytes=-1),
   )
   match result {
@@ -1832,9 +1832,9 @@ async test "serve_on_until rejects non-positive request_body_read_timeout_ms" {
   let server = allocate_test_server()
   defer server.close()
   let shutdown = @async.Queue::new(kind=Unbounded)
-  let result : Result[Unit, Error] = try? app.serve_on_until(
+  let result : Result[Unit, Error] = try? app.serve_on(
     server,
-    shutdown,
+    shutdown~,
     options=NativeServeOptions(request_body_read_timeout_ms=0),
   )
   match result {
@@ -1867,9 +1867,9 @@ async test "serve rejects non-positive request_body_read_timeout_ms" {
 async test "serve_until rejects non-positive request_body_read_timeout_ms" {
   let app = @crescent.Mocket()
   let shutdown = @async.Queue::new(kind=Unbounded)
-  let result : Result[Unit, Error] = try? app.serve_until(
+  let result : Result[Unit, Error] = try? app.serve(
     port=0,
-    shutdown,
+    shutdown~,
     options=NativeServeOptions(request_body_read_timeout_ms=0),
   )
   match result {
@@ -1905,9 +1905,9 @@ async test "serve_on_until rejects non-positive websocket_outgoing_queue_capacit
   let server = allocate_test_server()
   defer server.close()
   let shutdown = @async.Queue::new(kind=Unbounded)
-  let result : Result[Unit, Error] = try? app.serve_on_until(
+  let result : Result[Unit, Error] = try? app.serve_on(
     server,
-    shutdown,
+    shutdown~,
     options=NativeServeOptions(websocket_outgoing_queue_capacity=0),
   )
   match result {
@@ -1943,9 +1943,9 @@ async test "serve rejects non-positive websocket_outgoing_queue_capacity" {
 async test "serve_until rejects non-positive websocket_outgoing_queue_capacity" {
   let app = @crescent.Mocket()
   let shutdown = @async.Queue::new(kind=Unbounded)
-  let result : Result[Unit, Error] = try? app.serve_until(
+  let result : Result[Unit, Error] = try? app.serve(
     port=0,
-    shutdown,
+    shutdown~,
     options=NativeServeOptions(websocket_outgoing_queue_capacity=0),
   )
   match result {
@@ -1982,9 +1982,9 @@ async test "serve_on_until rejects non-positive websocket_read_timeout_ms" {
   let server = allocate_test_server()
   defer server.close()
   let shutdown = @async.Queue::new(kind=Unbounded)
-  let result : Result[Unit, Error] = try? app.serve_on_until(
+  let result : Result[Unit, Error] = try? app.serve_on(
     server,
-    shutdown,
+    shutdown~,
     options=NativeServeOptions(websocket_read_timeout_ms=0),
   )
   match result {
@@ -2015,9 +2015,9 @@ async test "serve rejects non-positive websocket_read_timeout_ms" {
 async test "serve_until rejects non-positive websocket_read_timeout_ms" {
   let app = @crescent.Mocket()
   let shutdown = @async.Queue::new(kind=Unbounded)
-  let result : Result[Unit, Error] = try? app.serve_until(
+  let result : Result[Unit, Error] = try? app.serve(
     port=0,
-    shutdown,
+    shutdown~,
     options=NativeServeOptions(websocket_read_timeout_ms=0),
   )
   match result {
@@ -2051,9 +2051,9 @@ async test "serve_on_until rejects negative websocket_max_message_bytes" {
   let server = allocate_test_server()
   defer server.close()
   let shutdown = @async.Queue::new(kind=Unbounded)
-  let result : Result[Unit, Error] = try? app.serve_on_until(
+  let result : Result[Unit, Error] = try? app.serve_on(
     server,
-    shutdown,
+    shutdown~,
     options=NativeServeOptions(websocket_max_message_bytes=-1),
   )
   match result {
@@ -2086,9 +2086,9 @@ async test "serve rejects negative websocket_max_message_bytes" {
 async test "serve_until rejects negative websocket_max_message_bytes" {
   let app = @crescent.Mocket()
   let shutdown = @async.Queue::new(kind=Unbounded)
-  let result : Result[Unit, Error] = try? app.serve_until(
+  let result : Result[Unit, Error] = try? app.serve(
     port=0,
-    shutdown,
+    shutdown~,
     options=NativeServeOptions(websocket_max_message_bytes=-1),
   )
   match result {
@@ -2161,9 +2161,9 @@ async test "serve_on times out slow request bodies" {
 async test "serve_until rejects negative max_request_body_bytes" {
   let app = @crescent.Mocket()
   let shutdown = @async.Queue::new(kind=Unbounded)
-  let result : Result[Unit, Error] = try? app.serve_until(
+  let result : Result[Unit, Error] = try? app.serve(
     port=0,
-    shutdown,
+    shutdown~,
     options=NativeServeOptions(max_request_body_bytes=-1),
   )
   match result {
@@ -2275,7 +2275,7 @@ async test "serve_on_until stops on shutdown signal" {
     let port = server.addr.port()
     let shutdown = @async.Queue::new(kind=Blocking(0))
     let task = group.spawn(no_wait=true, () => {
-      try? app.serve_on_until(server, shutdown)
+      try? app.serve_on(server, shutdown~)
     })
     wait_until_ready(port)
 
@@ -2318,10 +2318,10 @@ async test "serve_on_until broadcasts shutdown when the queue is closed" {
     let port2 = server2.addr.port()
     let shutdown = @async.Queue::new(kind=Blocking(0))
     let task1 = group.spawn(no_wait=true, () => {
-      try? app1.serve_on_until(server1, shutdown)
+      try? app1.serve_on(server1, shutdown~)
     })
     let task2 = group.spawn(no_wait=true, () => {
-      try? app2.serve_on_until(server2, shutdown)
+      try? app2.serve_on(server2, shutdown~)
     })
     wait_until_ready(port1)
     wait_until_ready(port2)
@@ -2370,7 +2370,7 @@ async test "serve_until binds by port and stops on shutdown signal" {
     let attempt_result : Result[Bool, Error] = try? @async.with_task_group(group => {
       let shutdown = @async.Queue::new(kind=Unbounded)
       let task = group.spawn(no_wait=true, () => {
-        try? app.serve_until(port~, shutdown)
+        try? app.serve(port~, shutdown~)
       })
       match @async.with_timeout_opt(50, () => task.wait()) {
         Some(result) =>
@@ -4085,7 +4085,7 @@ async test "serve_on_until sends going-away close to websocket clients on shutdo
     let port = server.addr.port()
     let shutdown = @async.Queue::new(kind=Unbounded)
     let task = group.spawn(no_wait=true, () => {
-      app.serve_on_until(server, shutdown)
+      app.serve_on(server, shutdown~)
     })
     wait_until_ready(port)
 
@@ -4146,10 +4146,10 @@ async test "serve_on_until broadcasts going-away close when the shutdown queue i
     let port2 = server2.addr.port()
     let shutdown = @async.Queue::new(kind=Unbounded)
     let task1 = group.spawn(no_wait=true, () => {
-      app.serve_on_until(server1, shutdown)
+      app.serve_on(server1, shutdown~)
     })
     let task2 = group.spawn(no_wait=true, () => {
-      app.serve_on_until(server2, shutdown)
+      app.serve_on(server2, shutdown~)
     })
     wait_until_ready(port1)
     wait_until_ready(port2)
@@ -4251,10 +4251,10 @@ async test "serve_on_until queue close stops remaining reused websocket servers 
     let port2 = server2.addr.port()
     let shutdown = @async.Queue::new(kind=Unbounded)
     let task1 = group.spawn(no_wait=true, () => {
-      app.serve_on_until(server1, shutdown)
+      app.serve_on(server1, shutdown~)
     })
     let task2 = group.spawn(no_wait=true, () => {
-      app.serve_on_until(server2, shutdown)
+      app.serve_on(server2, shutdown~)
     })
     wait_until_ready(port1)
     wait_until_ready(port2)
@@ -4357,10 +4357,10 @@ async test "serve_on_until shutdown signal wakes one reused websocket server" {
     let port2 = server2.addr.port()
     let shutdown = @async.Queue::new(kind=Blocking(0))
     let task1 = group.spawn(no_wait=true, () => {
-      app.serve_on_until(server1, shutdown)
+      app.serve_on(server1, shutdown~)
     })
     let task2 = group.spawn(no_wait=true, () => {
-      app.serve_on_until(server2, shutdown)
+      app.serve_on(server2, shutdown~)
     })
     wait_until_ready(port1)
     wait_until_ready(port2)
@@ -4596,10 +4596,10 @@ async test "serve_on_until queue close stops surviving reused websocket server a
     let port2 = server2.addr.port()
     let shutdown = @async.Queue::new(kind=Blocking(0))
     let task1 = group.spawn(no_wait=true, () => {
-      app.serve_on_until(server1, shutdown)
+      app.serve_on(server1, shutdown~)
     })
     let task2 = group.spawn(no_wait=true, () => {
-      app.serve_on_until(server2, shutdown)
+      app.serve_on(server2, shutdown~)
     })
     wait_until_ready(port1)
     wait_until_ready(port2)
@@ -4813,13 +4813,13 @@ async test "serve_on_until queue close broadcasts to remaining reused websocket 
     let port3 = server3.addr.port()
     let shutdown = @async.Queue::new(kind=Blocking(0))
     let task1 = group.spawn(no_wait=true, () => {
-      app.serve_on_until(server1, shutdown)
+      app.serve_on(server1, shutdown~)
     })
     let task2 = group.spawn(no_wait=true, () => {
-      app.serve_on_until(server2, shutdown)
+      app.serve_on(server2, shutdown~)
     })
     let task3 = group.spawn(no_wait=true, () => {
-      app.serve_on_until(server3, shutdown)
+      app.serve_on(server3, shutdown~)
     })
     wait_until_ready(port1)
     wait_until_ready(port2)

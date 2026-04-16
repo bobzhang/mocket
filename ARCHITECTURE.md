@@ -25,7 +25,7 @@ web programming. Every web concept is introduced before it is used.
 11. [Typed Handlers and Error Mapping (`typed_handler.mbt`)](#11-typed-handlers-and-error-mapping)
 12. [HTTP Utilities (`httputil/`)](#12-http-utilities)
 13. [WebSocket: Persistent Bidirectional Channels](#13-websocket-persistent-bidirectional-channels)
-14. [Native Server Runtime (`serve_async.native.mbt`)](#14-native-server-runtime)
+14. [Native Server Runtime (`serve_async.mbt`)](#14-native-server-runtime)
 15. [Sub-Packages](#15-sub-packages)
 16. [Testing Infrastructure](#16-testing-infrastructure)
 17. [Codebase Statistics](#17-codebase-statistics)
@@ -397,7 +397,7 @@ sequenceDiagram
 ### Route Lookup Precedence
 
 When a request arrives, the framework must decide which handler to call. The
-`lookup_http_route` function (`serve_async.native.mbt:353`) checks in this
+`lookup_http_route` function (`serve_async.mbt:353`) checks in this
 order:
 
 1. **Exact method + path** via `find_route()` -- first the static map (O(1)),
@@ -952,7 +952,7 @@ filename, content-type) and body. `parse_multipart()` parses this format into
 
 ## 13. WebSocket: Persistent Bidirectional Channels
 
-**Files:** `websocket.mbt` (109 lines), `websocket_async.native.mbt` (496 lines)
+**Files:** `websocket.mbt` (109 lines), `websocket_async.mbt` (496 lines)
 
 ### Why WebSocket?
 
@@ -1039,7 +1039,7 @@ on the server.
 
 ## 14. Native Server Runtime
 
-**File:** `serve_async.native.mbt` (1056 lines)
+**File:** `serve_async.mbt` (946 lines)
 
 This is the largest file in the codebase and the bridge between the MoonBit async
 runtime (`moonbitlang/async`) and the Crescent framework. It handles everything
@@ -1053,22 +1053,19 @@ All accept an optional `options~` parameter for server configuration:
 
 ```mermaid
 graph TD
-    SERVE["serve(port, options~)"]
-    SERVE_ON["serve_on(server, options~)"]
-    SERVE_UNTIL["serve_until(port, shutdown, options~)"]
-    SERVE_ON_UNTIL["serve_on_until(server, shutdown, options~)"]
+    SERVE["serve(port~, shutdown?, options?)"]
+    SERVE_ON["serve_on(server, shutdown?, options?)"]
     RUN["run_native_server<br/>(internal)"]
 
     SERVE --> SERVE_ON
-    SERVE_UNTIL --> SERVE_ON_UNTIL
-    SERVE_ON --> RUN
-    SERVE_ON_UNTIL -->|"with shutdown<br/>signal"| RUN
+    SERVE_ON -->|"no shutdown"| RUN
+    SERVE_ON -->|"with shutdown<br/>signal"| RUN
 ```
 
 - `serve(port=4000)` -- simplest. Listens forever.
 - `serve(port=4000, options=NativeServeOptions(...))` -- same, but with configuration.
 - `serve_on(server)` -- you provide a pre-configured `@http.Server`.
-- `serve_until(port, shutdown)` -- stops when `shutdown` queue receives a value.
+- `serve(port=4000, shutdown~)` -- stops when `shutdown` queue receives a value.
   This enables **graceful shutdown**: the server stops accepting new connections
   and waits for in-flight requests to finish.
 
@@ -1289,8 +1286,8 @@ responsibility:
 | ~~`fetch.mbt`~~            |       | *(moved to `fetch/` sub-package)*             |
 | `static.mbt`               | 446   | `ServeStaticProvider` trait, asset serving     |
 | `websocket.mbt`            | 109   | `WebSocketPeer`, events, handler type         |
-| `websocket_async.native.mbt` | 496 | Native WS hub, pub/sub, connection mgmt       |
+| `websocket_async.mbt` | 496 | Native WS hub, pub/sub, connection mgmt       |
 | `serve_options.mbt`        | 499   | `NativeServeOptions`, validation              |
-| `serve_async.native.mbt`   | 1056  | Native server runtime, connection handling    |
+| `serve_async.mbt`          | 946   | Native server runtime, connection handling    |
 | ~~`fetch.native.mbt`~~     |       | *(moved to `fetch/` sub-package)*             |
 | `error.mbt`                | 11    | Error type definitions                        |

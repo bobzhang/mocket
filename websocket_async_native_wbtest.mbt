@@ -236,7 +236,7 @@ async test "serve_on_until clears websocket runtime state on shutdown signal" {
     let port = server.addr.port()
     let shutdown = @async.Queue::new(kind=Blocking(0))
     let task = group.spawn(no_wait=true, () => {
-      try? app.serve_on_until(server, shutdown)
+      try? app.serve_on(server, shutdown~)
     })
     wait_until_websocket_lifecycle_ready(port)
 
@@ -900,10 +900,10 @@ async test "serve_on_until shutdown stays isolated across reused app runtimes" {
     let shutdown1 = @async.Queue::new(kind=Unbounded)
     let shutdown2 = @async.Queue::new(kind=Unbounded)
     let task1 = group.spawn(no_wait=true, () => {
-      try? app.serve_on_until(server1, shutdown1)
+      try? app.serve_on(server1, shutdown=shutdown1)
     })
     let task2 = group.spawn(no_wait=true, () => {
-      try? app.serve_on_until(server2, shutdown2)
+      try? app.serve_on(server2, shutdown=shutdown2)
     })
     wait_until_websocket_lifecycle_ready(port1)
     wait_until_websocket_lifecycle_ready(port2)
@@ -1006,10 +1006,10 @@ async test "serve_on_until queue close clears reused app websocket runtimes" {
     let port2 = server2.addr.port()
     let shutdown = @async.Queue::new(kind=Blocking(0))
     let task1 = group.spawn(no_wait=true, () => {
-      try? app.serve_on_until(server1, shutdown)
+      try? app.serve_on(server1, shutdown~)
     })
     let task2 = group.spawn(no_wait=true, () => {
-      try? app.serve_on_until(server2, shutdown)
+      try? app.serve_on(server2, shutdown~)
     })
     wait_until_websocket_lifecycle_ready(port1)
     wait_until_websocket_lifecycle_ready(port2)
@@ -1094,10 +1094,10 @@ async test "serve_on_until queue close clears remaining reused runtime after can
     let port2 = server2.addr.port()
     let shutdown = @async.Queue::new(kind=Unbounded)
     let task1 = group.spawn(no_wait=true, () => {
-      try? app.serve_on_until(server1, shutdown)
+      try? app.serve_on(server1, shutdown~)
     })
     let task2 = group.spawn(no_wait=true, () => {
-      try? app.serve_on_until(server2, shutdown)
+      try? app.serve_on(server2, shutdown~)
     })
     wait_until_websocket_lifecycle_ready(port1)
     wait_until_websocket_lifecycle_ready(port2)
@@ -1191,10 +1191,10 @@ async test "serve_on_until shutdown signal wakes one reused runtime" {
     let port2 = server2.addr.port()
     let shutdown = @async.Queue::new(kind=Blocking(0))
     let task1 = group.spawn(no_wait=true, () => {
-      try? app.serve_on_until(server1, shutdown)
+      try? app.serve_on(server1, shutdown~)
     })
     let task2 = group.spawn(no_wait=true, () => {
-      try? app.serve_on_until(server2, shutdown)
+      try? app.serve_on(server2, shutdown~)
     })
     wait_until_websocket_lifecycle_ready(port1)
     wait_until_websocket_lifecycle_ready(port2)
@@ -1434,10 +1434,10 @@ async test "serve_on_until queue close clears surviving reused runtime after shu
     let port2 = server2.addr.port()
     let shutdown = @async.Queue::new(kind=Blocking(0))
     let task1 = group.spawn(no_wait=true, () => {
-      try? app.serve_on_until(server1, shutdown)
+      try? app.serve_on(server1, shutdown~)
     })
     let task2 = group.spawn(no_wait=true, () => {
-      try? app.serve_on_until(server2, shutdown)
+      try? app.serve_on(server2, shutdown~)
     })
     wait_until_websocket_lifecycle_ready(port1)
     wait_until_websocket_lifecycle_ready(port2)

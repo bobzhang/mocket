@@ -614,7 +614,7 @@ Methods: `@fetch.get`, `@fetch.post`, `@fetch.put`, `@fetch.patch`,
   let shutdown = @async.Queue()
 
   // In another task: shutdown.put(()) to stop the server
-  app.serve_until(port=4000, shutdown~)
+  app.serve(port=4000, shutdown~)
 ```
 
 ### Serve on an existing server

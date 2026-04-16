@@ -800,126 +800,119 @@ async fn wait_for_shutdown_signal(shutdown : @async.Queue[Unit]) -> Unit {
 /// websocket queue drops the oldest or latest message.
 /// `websocket_read_timeout_ms`, if present, closes websocket connections
 /// after that many milliseconds waiting for the next inbound message.
+/// When `shutdown` is supplied, serving stops once the queue receives a unit
+/// or is closed. `shutdown.put(())` wakes one waiter; `shutdown.close()`
+/// broadcasts to all waiters. When `shutdown_timeout_ms` is set, shutdown is
+/// graceful: the server stops accepting new connections and waits up to that
+/// many milliseconds for in-flight requests to complete before force-cancelling.
+/// Otherwise shutdown is cancellation-based (active requests are aborted
+/// immediately).
 pub async fn Mocket::serve_on(
   self : Mocket,
   server : @http.Server,
+  shutdown? : @async.Queue[Unit],
   options? : NativeServeOptions = NativeServeOptions(),
 ) -> Unit {
   let ws_runtime_id = next_ws_serve_runtime_id(self)
   defer cleanup_native_ws_runtime(ws_runtime_id)
-  run_native_server(self, ws_runtime_id, server, options)
-}
-
-///|
-/// Stop serving when `shutdown` receives a unit or is closed.
-/// `shutdown.put(())` wakes one waiter; `shutdown.close()` broadcasts to all waiters.
-///
-/// When `shutdown_timeout_ms` is set, shutdown is graceful: the server stops
-/// accepting new connections and waits up to that many milliseconds for
-/// in-flight requests to complete before force-cancelling. When unset,
-/// shutdown is cancellation-based (active requests are aborted immediately).
-pub async fn Mocket::serve_on_until(
-  self : Mocket,
-  server : @http.Server,
-  shutdown : @async.Queue[Unit],
-  options? : NativeServeOptions = NativeServeOptions(),
-) -> Unit {
-  let ws_runtime_id = next_ws_serve_runtime_id(self)
-  defer cleanup_native_ws_runtime(ws_runtime_id)
-  match options.shutdown_timeout_ms {
-    Some(timeout_ms) => {
-      // Graceful shutdown with manual accept loop.
-      // Architecture: inner task group tracks handler tasks; outer group
-      // provides the cancellation boundary for the hard timeout.
-      //
-      // Timeline:
-      // 1. Accept loop runs, spawning handler tasks into inner group.
-      // 2. Shutdown signal → set draining flag, close server.
-      // 3. Accept loop exits (accept fails after close).
-      // 4. Inner group waits for handler tasks to finish current requests.
-      // 5. Hard timeout (started AFTER shutdown) cancels everything.
-      let sem : @async.Semaphore? = match options.max_connections {
-        Some(n) => Some(@async.Semaphore::new(n))
-        None => None
-      }
-      let draining : Ref[Bool] = Ref::new(false)
-      let handlers_drained : @async.Queue[Unit] = @async.Queue::new(
-        kind=Unbounded,
-      )
-      @async.with_task_group(outer => {
-        // Inner group: accept loop + handler tasks
-        outer.spawn_bg(no_wait=true, allow_failure=true, () => {
-          @async.with_task_group(inner => {
-            // Accept loop is the main function of inner group.
-            // When it exits, inner group waits for handler children.
-            for ;; {
-              let conn_result : Result[
-                (@http.ServerConnection, @socket.Addr),
-                Error,
-              ] = try? server.accept()
-              match conn_result {
-                Err(_) => break // server closed, stop accepting
-                Ok((conn, _addr)) => {
-                  match sem {
-                    Some(s) => s.acquire()
-                    None => ()
-                  }
-                  inner.spawn_bg(allow_failure=true, () => {
-                    defer (match sem {
-                      Some(s) => s.release()
-                      None => ()
-                    })
-                    // Keep-alive loop: check draining after each request
-                    for ;; {
-                      let req_result : Result[@http.Request, Error] = try? conn.read_request()
-                      match req_result {
-                        Ok(request) => {
-                          let body_reader : &@io.Reader = conn
-                          handle_request_async(
-                            self, ws_runtime_id, request, body_reader, conn, options,
-                          ) catch {
-                            _ => {
+  match shutdown {
+    None => run_native_server(self, ws_runtime_id, server, options)
+    Some(shutdown) =>
+      match options.shutdown_timeout_ms {
+        Some(timeout_ms) => {
+          // Graceful shutdown with manual accept loop.
+          // Architecture: inner task group tracks handler tasks; outer group
+          // provides the cancellation boundary for the hard timeout.
+          //
+          // Timeline:
+          // 1. Accept loop runs, spawning handler tasks into inner group.
+          // 2. Shutdown signal → set draining flag, close server.
+          // 3. Accept loop exits (accept fails after close).
+          // 4. Inner group waits for handler tasks to finish current requests.
+          // 5. Hard timeout (started AFTER shutdown) cancels everything.
+          let sem : @async.Semaphore? = match options.max_connections {
+            Some(n) => Some(@async.Semaphore::new(n))
+            None => None
+          }
+          let draining : Ref[Bool] = Ref::new(false)
+          let handlers_drained : @async.Queue[Unit] = @async.Queue::new(
+            kind=Unbounded,
+          )
+          @async.with_task_group(outer => {
+            // Inner group: accept loop + handler tasks
+            outer.spawn_bg(no_wait=true, allow_failure=true, () => {
+              @async.with_task_group(inner => {
+                // Accept loop is the main function of inner group.
+                // When it exits, inner group waits for handler children.
+                for ;; {
+                  let conn_result : Result[
+                    (@http.ServerConnection, @socket.Addr),
+                    Error,
+                  ] = try? server.accept()
+                  match conn_result {
+                    Err(_) => break // server closed, stop accepting
+                    Ok((conn, _addr)) => {
+                      match sem {
+                        Some(s) => s.acquire()
+                        None => ()
+                      }
+                      inner.spawn_bg(allow_failure=true, () => {
+                        defer (match sem {
+                          Some(s) => s.release()
+                          None => ()
+                        })
+                        // Keep-alive loop: check draining after each request
+                        for ;; {
+                          let req_result : Result[@http.Request, Error] = try? conn.read_request()
+                          match req_result {
+                            Ok(request) => {
+                              let body_reader : &@io.Reader = conn
+                              handle_request_async(
+                                self, ws_runtime_id, request, body_reader, conn, options,
+                              ) catch {
+                                _ => {
+                                  conn.close()
+                                  break
+                                }
+                              }
+                              if draining.val {
+                                conn.close()
+                                break
+                              }
+                            }
+                            Err(_) => {
                               conn.close()
                               break
                             }
                           }
-                          if draining.val {
-                            conn.close()
-                            break
-                          }
                         }
-                        Err(_) => {
-                          conn.close()
-                          break
-                        }
-                      }
+                      })
                     }
-                  })
+                  }
                 }
-              }
-            }
+              })
+              // Inner group done: all handlers have finished
+              handlers_drained.put(())
+            })
+            // Outer main: wait for shutdown, then drain with timeout
+            wait_for_shutdown_signal(shutdown)
+            draining.val = true
+            server.close()
+            // Timeout starts NOW (after shutdown signal, not from boot)
+            @async.any([
+              () => ignore(try? handlers_drained.get()),
+              () => @async.sleep(timeout_ms),
+            ])
+            // Outer main returns → outer group cancels inner (no_wait=true)
           })
-          // Inner group done: all handlers have finished
-          handlers_drained.put(())
-        })
-        // Outer main: wait for shutdown, then drain with timeout
-        wait_for_shutdown_signal(shutdown)
-        draining.val = true
-        server.close()
-        // Timeout starts NOW (after shutdown signal, not from boot)
-        @async.any([
-          () => ignore(try? handlers_drained.get()),
-          () => @async.sleep(timeout_ms),
-        ])
-        // Outer main returns → outer group cancels inner (no_wait=true)
-      })
-    }
-    None =>
-      // Default: cancellation-based (abort active requests)
-      @async.any([
-        () => run_native_server(self, ws_runtime_id, server, options),
-        () => wait_for_shutdown_signal(shutdown),
-      ])
+        }
+        None =>
+          // Default: cancellation-based (abort active requests)
+          @async.any([
+            () => run_native_server(self, ws_runtime_id, server, options),
+            () => wait_for_shutdown_signal(shutdown),
+          ])
+      }
   }
 }
 
@@ -939,45 +932,15 @@ pub async fn Mocket::serve_on_until(
 /// websocket queue drops the oldest or latest message.
 /// `websocket_read_timeout_ms`, if present, closes websocket connections
 /// after that many milliseconds waiting for the next inbound message.
+/// When `shutdown` is supplied, serving stops once the queue receives a unit
+/// or is closed. See `serve_on` for shutdown semantics.
 pub async fn Mocket::serve(
   self : Mocket,
   port~ : Int,
+  shutdown? : @async.Queue[Unit],
   options? : NativeServeOptions = NativeServeOptions(),
 ) -> Unit raise {
   let addr = @socket.Addr::parse("0.0.0.0:\{port}")
   let server = @http.Server(addr, reuse_addr=true)
-  self.serve_on(server, options~)
-}
-
-///|
-/// Stop serving when `shutdown` receives a unit or is closed.
-/// `shutdown.put(())` wakes one waiter; `shutdown.close()` broadcasts to all waiters.
-///
-/// When `shutdown_timeout_ms` is set, shutdown is graceful: the server stops
-/// accepting new connections and waits up to that many milliseconds for
-/// in-flight requests to complete before force-cancelling. When unset,
-/// shutdown is cancellation-based (active requests are aborted immediately).
-/// `max_connections`, if present, limits the number of client connections
-/// handled in parallel by the underlying `@http.Server`.
-/// `max_request_body_bytes`, if present, rejects oversized request bodies
-/// with `413 Request Entity Too Large`.
-/// `request_body_read_timeout_ms`, if present, rejects slow request bodies
-/// with `408 Request Timeout`.
-/// `websocket_max_message_bytes`, if present, closes websocket connections
-/// with `1009 MessageTooBig` when an inbound message exceeds that many bytes.
-/// `websocket_outgoing_queue_capacity`, if present, bounds buffered outbound
-/// websocket messages per connection.
-/// `websocket_overflow_policy`, if present, chooses whether a full outbound
-/// websocket queue drops the oldest or latest message.
-/// `websocket_read_timeout_ms`, if present, closes websocket connections
-/// after that many milliseconds waiting for the next inbound message.
-pub async fn Mocket::serve_until(
-  self : Mocket,
-  port~ : Int,
-  shutdown : @async.Queue[Unit],
-  options? : NativeServeOptions = NativeServeOptions(),
-) -> Unit raise {
-  let addr = @socket.Addr::parse("0.0.0.0:\{port}")
-  let server = @http.Server(addr, reuse_addr=true)
-  self.serve_on_until(server, shutdown, options~)
+  self.serve_on(server, shutdown?, options~)
 }

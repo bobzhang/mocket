@@ -73,10 +73,8 @@ pub fn Mocket::put(Self, String, async (MocketEvent) -> &@core.Responder) -> Uni
 pub fn Mocket::put_raw(Self, String, HttpHandler) -> Unit
 pub fn Mocket::resource(Self, String, ResourceConfig) -> Unit
 pub fn Mocket::routes(Self) -> Iter[(String, String)]
-pub async fn Mocket::serve(Self, port~ : Int, options? : NativeServeOptions) -> Unit
-pub async fn Mocket::serve_on(Self, @http.Server, options? : NativeServeOptions) -> Unit
-pub async fn Mocket::serve_on_until(Self, @http.Server, @aqueue.Queue[Unit], options? : NativeServeOptions) -> Unit
-pub async fn Mocket::serve_until(Self, port~ : Int, @aqueue.Queue[Unit], options? : NativeServeOptions) -> Unit
+pub async fn Mocket::serve(Self, port~ : Int, shutdown? : @aqueue.Queue[Unit], options? : NativeServeOptions) -> Unit
+pub async fn Mocket::serve_on(Self, @http.Server, shutdown? : @aqueue.Queue[Unit], options? : NativeServeOptions) -> Unit
 pub fn Mocket::set_not_found_handler(Self, HttpHandler) -> Unit
 pub fn Mocket::static_assets(Self, String, &ServeStaticProvider) -> Unit
 pub fn Mocket::trace(Self, String, async (MocketEvent) -> &@core.Responder) -> Unit
@@ -111,7 +109,7 @@ pub struct NativeServeOptions {
   websocket_read_timeout_ms : Int?
   websocket_max_message_bytes : Int?
 
-  fn new(max_connections? : Int, max_request_body_bytes? : Int, request_body_read_timeout_ms? : Int, handler_timeout_ms? : Int, shutdown_timeout_ms? : Int, websocket_outgoing_queue_capacity? : Int, websocket_overflow_policy? : NativeWebSocketOverflowPolicy, websocket_read_timeout_ms? : Int, websocket_max_message_bytes? : Int) -> NativeServeOptions
+  fn new(max_connections? : Int, max_request_body_bytes? : Int, request_body_read_timeout_ms? : Int, handler_timeout_ms? : Int, shutdown_timeout_ms? : Int, websocket_outgoing_queue_capacity? : Int, websocket_overflow_policy? : NativeWebSocketOverflowPolicy, websocket_read_timeout_ms? : Int, websocket_max_message_bytes? : Int) -> NativeServeOptions raise
 }
 
 pub(all) enum NativeWebSocketOverflowPolicy {
