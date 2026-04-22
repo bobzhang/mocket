@@ -13,9 +13,8 @@ import {
 // Types and methods
 pub struct StaticFileProvider {
   // private fields
-
-  fn new(path~ : String) -> StaticFileProvider
 }
+pub fn StaticFileProvider::StaticFileProvider(path~ : String) -> Self
 pub impl @crescent.ServeStaticProvider for StaticFileProvider
 
 // Type aliases

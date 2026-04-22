@@ -46,9 +46,8 @@ pub(all) struct MiddlewareNext(async () -> &@core.Responder noraise)
 
 pub struct Mocket {
   // private fields
-
-  fn new(base_path? : String) -> Mocket
 }
+pub fn Mocket::Mocket(base_path? : String) -> Self
 pub fn Mocket::all(Self, String, async (MocketEvent) -> &@core.Responder) -> Unit
 pub fn Mocket::all_raw(Self, String, HttpHandler) -> Unit
 pub fn Mocket::connect(Self, String, async (MocketEvent) -> &@core.Responder) -> Unit
@@ -108,9 +107,8 @@ pub struct NativeServeOptions {
   websocket_overflow_policy : NativeWebSocketOverflowPolicy?
   websocket_read_timeout_ms : Int?
   websocket_max_message_bytes : Int?
-
-  fn new(max_connections? : Int, max_request_body_bytes? : Int, request_body_read_timeout_ms? : Int, handler_timeout_ms? : Int, shutdown_timeout_ms? : Int, websocket_outgoing_queue_capacity? : Int, websocket_overflow_policy? : NativeWebSocketOverflowPolicy, websocket_read_timeout_ms? : Int, websocket_max_message_bytes? : Int) -> NativeServeOptions raise
 }
+pub fn NativeServeOptions::NativeServeOptions(max_connections? : Int, max_request_body_bytes? : Int, request_body_read_timeout_ms? : Int, handler_timeout_ms? : Int, shutdown_timeout_ms? : Int, websocket_outgoing_queue_capacity? : Int, websocket_overflow_policy? : NativeWebSocketOverflowPolicy, websocket_read_timeout_ms? : Int, websocket_max_message_bytes? : Int) -> Self raise
 
 pub(all) enum NativeWebSocketOverflowPolicy {
   DropOldest
@@ -124,9 +122,8 @@ pub struct ResourceConfig {
   create : (async (MocketEvent) -> &@core.Responder)?
   update : (async (MocketEvent) -> &@core.Responder)?
   delete : (async (MocketEvent) -> &@core.Responder)?
-
-  fn new(list? : async (MocketEvent) -> &@core.Responder, get? : async (MocketEvent) -> &@core.Responder, create? : async (MocketEvent) -> &@core.Responder, update? : async (MocketEvent) -> &@core.Responder, delete? : async (MocketEvent) -> &@core.Responder) -> ResourceConfig
 }
+pub fn ResourceConfig::ResourceConfig(list? : async (MocketEvent) -> &@core.Responder, get? : async (MocketEvent) -> &@core.Responder, create? : async (MocketEvent) -> &@core.Responder, update? : async (MocketEvent) -> &@core.Responder, delete? : async (MocketEvent) -> &@core.Responder) -> Self
 
 pub(all) struct StaticAssetMeta {
   asset_type : String?
@@ -135,9 +132,8 @@ pub(all) struct StaticAssetMeta {
   path : String?
   size : Int64?
   encoding : String?
-
-  fn new(asset_type? : String, etag? : String, mtime? : Int64, path? : String, size? : Int64, encoding? : String) -> StaticAssetMeta
 }
+pub fn StaticAssetMeta::StaticAssetMeta(asset_type? : String, etag? : String, mtime? : Int64, path? : String, size? : Int64, encoding? : String) -> Self
 
 type StaticResolvedResponder
 pub impl @core.Responder for StaticResolvedResponder
@@ -157,9 +153,8 @@ pub(all) struct WebSocketHandler((WebSocketEvent) -> Unit)
 
 pub struct WebSocketPeer {
   // private fields
-
-  fn new(connection_id~ : String, params? : Map[String, String]) -> WebSocketPeer
 }
+pub fn WebSocketPeer::WebSocketPeer(connection_id~ : String, params? : Map[String, String]) -> Self
 pub fn WebSocketPeer::binary(Self, Bytes) -> Unit
 pub fn WebSocketPeer::param(Self, String) -> String?
 pub fn WebSocketPeer::publish(Self, String, String) -> Unit

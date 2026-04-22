@@ -41,9 +41,8 @@ pub(all) struct HttpRequest {
   headers : Map[String, String]
   mut raw_body : Bytes
   // private fields
-
-  fn new(HttpMethod, String, Map[String, String], raw_body? : Bytes) -> HttpRequest
 } derive(@debug.Debug)
+pub fn HttpRequest::HttpRequest(HttpMethod, String, Map[String, String], raw_body? : Bytes) -> Self
 pub fn[T : BodyReader] HttpRequest::body(Self) -> T raise
 pub fn HttpRequest::content_type(Self) -> String?
 pub fn HttpRequest::from_method_string(String, String, Map[String, String], Bytes) -> Self
@@ -63,9 +62,8 @@ pub(all) struct HttpResponse {
   headers : Map[String, String]
   cookies : Map[String, @cookie.CookieItem]
   mut raw_body : Bytes
-
-  fn new(status_code~ : StatusCode, headers? : Map[String, String], cookies? : Map[String, @cookie.CookieItem], raw_body? : Bytes) -> HttpResponse
 } derive(@debug.Debug)
+pub fn HttpResponse::HttpResponse(status_code~ : StatusCode, headers? : Map[String, String], cookies? : Map[String, @cookie.CookieItem], raw_body? : Bytes) -> Self
 pub fn HttpResponse::bad_request() -> Self
 pub fn HttpResponse::body(Self, &Responder) -> Self
 pub fn HttpResponse::created() -> Self

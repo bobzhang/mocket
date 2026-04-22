@@ -37,9 +37,8 @@ pub struct Uri {
   path : Array[StringView]
   mut query : StringView?
   mut fragment : StringView?
-
-  fn new(StringView) -> Uri raise ParseError
 } derive(Eq, @debug.Debug)
+pub fn Uri::Uri(StringView) -> Self raise ParseError
 
 // Type aliases
 

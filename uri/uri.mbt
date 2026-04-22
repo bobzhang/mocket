@@ -34,8 +34,6 @@ pub struct Uri {
   mut query : StringView?
   /// Fragment after `#`, if present (without the `#`).
   mut fragment : StringView?
-
-  fn new(source : StringView) -> Uri raise ParseError
 } derive(Eq, Debug)
 
 ///|
@@ -193,7 +191,7 @@ fn parse_uri_reference(
 ///|
 /// Parses a URI-reference from raw bytes following RFC 3986, returning a fully
 /// populated `Uri` structure or raising a `ParseError` on invalid input.
-fn Uri::new(source : StringView) -> Uri raise ParseError {
+pub fn Uri::Uri(source : StringView) -> Uri raise ParseError {
   let uri = Uri::{
     scheme: None,
     authority: None,

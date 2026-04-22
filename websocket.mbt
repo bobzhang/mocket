@@ -8,17 +8,12 @@ pub struct WebSocketPeer {
   priv subscribed_channels : Array[String]
   /// Route parameters captured from the WebSocket upgrade URL (e.g., `/ws/:room`).
   priv params : Map[String, String]
-
-  fn new(
-    connection_id~ : String,
-    params? : Map[String, String],
-  ) -> WebSocketPeer
 }
 
 ///|
 /// Creates a new `WebSocketPeer` with the given connection ID and optional
 /// route parameters (extracted from dynamic WebSocket routes like `/ws/:room`).
-fn WebSocketPeer::new(
+pub fn WebSocketPeer::WebSocketPeer(
   connection_id~ : String,
   params? : Map[String, String],
 ) -> WebSocketPeer {

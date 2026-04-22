@@ -25,8 +25,6 @@ pub struct Mocket {
   priv ws_runtime_id : String
   /// Custom handler for URLs that match no registered route.
   priv mut not_found_handler : HttpHandler?
-
-  fn new(base_path? : String) -> Mocket
 }
 
 ///|
@@ -40,7 +38,7 @@ fn next_mocket_instance_id() -> String {
 
 ///|
 /// Creates a new Mocket application instance with an optional base path prefix.
-fn Mocket::new(base_path? : String = "") -> Mocket {
+pub fn Mocket::Mocket(base_path? : String = "") -> Mocket {
   {
     base_path,
     route_keys: [],
