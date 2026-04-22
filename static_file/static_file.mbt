@@ -10,13 +10,11 @@ using @crescent {trait ServeStaticProvider, trait Responder}
 pub struct StaticFileProvider {
   /// Root directory path on disk from which files are served.
   priv path : String
-
-  fn new(path~ : String) -> StaticFileProvider
 }
 
 ///|
 /// Creates a new `StaticFileProvider` rooted at the given directory path.
-fn StaticFileProvider::new(path~ : String) -> StaticFileProvider {
+pub fn StaticFileProvider::StaticFileProvider(path~ : String) -> StaticFileProvider {
   { path, }
 }
 

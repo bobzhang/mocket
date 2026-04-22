@@ -14,16 +14,14 @@ pub struct CompiledRoute {
   segments : Array[RouteSegment]
   is_static : Bool
   // private fields
-
-  fn new(String) -> CompiledRoute
 } derive(@debug.Debug)
+pub fn CompiledRoute::CompiledRoute(String) -> Self
 pub fn CompiledRoute::match_path(Self, String) -> Map[String, StringView]?
 
 pub struct RadixRouter[T] {
   // private fields
-
-  fn[T] new() -> RadixRouter[T]
 }
+pub fn[T] RadixRouter::RadixRouter() -> Self[T]
 pub fn[T] RadixRouter::insert(Self[T], String, CompiledRoute, T) -> Unit
 pub fn[T] RadixRouter::is_empty(Self[T]) -> Bool
 pub fn[T] RadixRouter::merge(Self[T], Self[T]) -> Unit

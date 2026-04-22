@@ -11,19 +11,11 @@ pub struct ResourceConfig {
   update : (async (MocketEvent) -> &Responder)?
   /// DELETE /path/:id — delete a resource
   delete : (async (MocketEvent) -> &Responder)?
-
-  fn new(
-    list? : async (MocketEvent) -> &Responder,
-    get? : async (MocketEvent) -> &Responder,
-    create? : async (MocketEvent) -> &Responder,
-    update? : async (MocketEvent) -> &Responder,
-    delete? : async (MocketEvent) -> &Responder,
-  ) -> ResourceConfig
 }
 
 ///|
 /// Creates a new `ResourceConfig` with optional CRUD handlers.
-fn ResourceConfig::new(
+pub fn ResourceConfig::ResourceConfig(
   list? : async (MocketEvent) -> &Responder,
   get? : async (MocketEvent) -> &Responder,
   create? : async (MocketEvent) -> &Responder,

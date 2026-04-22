@@ -48,22 +48,14 @@ pub struct NativeServeOptions {
   websocket_read_timeout_ms : Int?
   /// Maximum inbound WebSocket message size in bytes; exceeding closes with `1009 Message Too Big`.
   websocket_max_message_bytes : Int?
-
-  fn new(
-    max_connections? : Int,
-    max_request_body_bytes? : Int,
-    request_body_read_timeout_ms? : Int,
-    handler_timeout_ms? : Int,
-    shutdown_timeout_ms? : Int,
-    websocket_outgoing_queue_capacity? : Int,
-    websocket_overflow_policy? : NativeWebSocketOverflowPolicy,
-    websocket_read_timeout_ms? : Int,
-    websocket_max_message_bytes? : Int,
-  ) -> NativeServeOptions raise
 }
 
 ///|
-fn NativeServeOptions::new(
+/// Validate and construct `NativeServeOptions` from optional tuning
+/// parameters. Each parameter defaults to `None` (moon fmt infers that
+/// from the `?` markers) and is individually range-checked; raises if
+/// any value is out of range.
+pub fn NativeServeOptions::NativeServeOptions(
   max_connections? : Int,
   max_request_body_bytes? : Int,
   request_body_read_timeout_ms? : Int,

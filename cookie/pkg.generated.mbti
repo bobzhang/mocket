@@ -22,9 +22,8 @@ pub(all) struct CookieItem {
   secure : Bool?
   http_only : Bool?
   same_site : SameSiteOption?
-
-  fn new(name~ : String, value~ : String, max_age? : Int, path? : String, domain? : String, secure? : Bool, http_only? : Bool, same_site? : SameSiteOption) -> CookieItem
 } derive(Eq, @debug.Debug)
+pub fn CookieItem::CookieItem(name~ : String, value~ : String, max_age? : Int, path? : String, domain? : String, secure? : Bool, http_only? : Bool, same_site? : SameSiteOption) -> Self
 pub impl Show for CookieItem
 
 pub(all) enum SameSiteOption {

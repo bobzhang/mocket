@@ -43,22 +43,11 @@ pub(all) struct CookieItem {
   http_only : Bool?
   /// Cross-site request policy (`Lax`, `Strict`, or `SameSiteNone`).
   same_site : SameSiteOption?
-
-  fn new(
-    name~ : String,
-    value~ : String,
-    max_age? : Int,
-    path? : String,
-    domain? : String,
-    secure? : Bool,
-    http_only? : Bool,
-    same_site? : SameSiteOption,
-  ) -> CookieItem
 } derive(Eq, Debug)
 
 ///|
 /// Creates a new `CookieItem` with the given name, value, and optional attributes.
-fn CookieItem::new(
+pub fn CookieItem::CookieItem(
   name~ : String,
   value~ : String,
   max_age? : Int,

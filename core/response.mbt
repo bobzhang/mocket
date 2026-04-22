@@ -9,13 +9,6 @@ pub(all) struct HttpResponse {
   cookies : Map[String, @cookie.CookieItem]
   /// The raw response body bytes.
   mut raw_body : Bytes
-
-  fn new(
-    status_code~ : StatusCode,
-    headers? : Map[String, String],
-    cookies? : Map[String, @cookie.CookieItem],
-    raw_body? : Bytes,
-  ) -> HttpResponse
   // TODO: better error message when using skip
 } derive(Debug(ignore=Bytes))
 
@@ -29,7 +22,7 @@ pub fn[T : BodyReader] HttpResponse::read_body(self : HttpResponse) -> T raise {
 
 ///|
 /// Creates a new `HttpResponse` with the given status code and optional headers, cookies, and body.
-fn HttpResponse::new(
+pub fn HttpResponse::HttpResponse(
   status_code~ : StatusCode,
   headers? : Map[String, String],
   cookies? : Map[String, @cookie.CookieItem],

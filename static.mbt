@@ -13,20 +13,11 @@ pub(all) struct StaticAssetMeta {
   size : Int64?
   /// Content encoding if pre-compressed (e.g., `"gzip"`, `"br"`).
   encoding : String?
-
-  fn new(
-    asset_type? : String,
-    etag? : String,
-    mtime? : Int64,
-    path? : String,
-    size? : Int64,
-    encoding? : String,
-  ) -> StaticAssetMeta
 }
 
 ///|
 /// Creates a new `StaticAssetMeta` with optional fields for asset type, ETag, mtime, path, size, and encoding.
-fn StaticAssetMeta::new(
+pub fn StaticAssetMeta::StaticAssetMeta(
   asset_type? : String,
   etag? : String,
   mtime? : Int64,

@@ -211,13 +211,11 @@ pub struct RadixRouter[T] {
   priv trees : Map[String, RadixNode[T]]
   /// Fallback list for patterns the radix tree cannot represent (e.g., `/**/meta`).
   priv fallback_routes : Map[String, Array[(CompiledRoute, T)]]
-
-  fn[T] new() -> RadixRouter[T]
 }
 
 ///|
 /// Creates a new empty radix router with no registered routes.
-fn[T] RadixRouter::new() -> RadixRouter[T] {
+pub fn[T] RadixRouter::RadixRouter() -> RadixRouter[T] {
   { trees: {}, fallback_routes: {} }
 }
 

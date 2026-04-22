@@ -13,19 +13,11 @@ pub(all) struct HttpRequest {
   priv mut cached_path : String?
   /// Lazily cached parsed query params, populated on first call to `get_query()` or `query_params()`.
   priv mut cached_query_params : Map[String, String]?
-
-  /// Constructor — creates a new HttpRequest.
-  fn new(
-    http_method : HttpMethod,
-    url : String,
-    headers : Map[String, String],
-    raw_body? : Bytes,
-  ) -> HttpRequest
 } derive(Debug(ignore=Bytes))
 
 ///|
 /// Creates a new `HttpRequest` with the given method, URL, headers, and optional body.
-fn HttpRequest::new(
+pub fn HttpRequest::HttpRequest(
   http_method : HttpMethod,
   url : String,
   headers : Map[String, String],

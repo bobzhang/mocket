@@ -20,13 +20,11 @@ pub struct CompiledRoute {
   segments : Array[RouteSegment]
   /// True if the route is static (no parameters or wildcards)
   is_static : Bool
-
-  fn new(template : String) -> CompiledRoute
 } derive(Debug)
 
 ///|
 /// Compiles a route template string into a `CompiledRoute`.
-fn CompiledRoute::new(template : String) -> CompiledRoute {
+pub fn CompiledRoute::CompiledRoute(template : String) -> CompiledRoute {
   let parts = template.split("/")
   let segments : Array[RouteSegment] = []
   let mut is_static = true

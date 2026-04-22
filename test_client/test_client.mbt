@@ -3,8 +3,6 @@
 pub struct TestClient {
   /// The application instance to dispatch requests against.
   priv app : @crescent.Mocket
-
-  fn new(app : @crescent.Mocket) -> TestClient
 }
 
 ///|
@@ -20,8 +18,14 @@ pub struct TestResponse {
 
 ///|
 /// Creates a new test client wrapping the given app.
-pub fn TestClient::new(app : @crescent.Mocket) -> TestClient {
+pub fn TestClient::TestClient(app : @crescent.Mocket) -> TestClient {
   { app, }
+}
+
+///|
+#deprecated("Use `TestClient(app)` canonical constructor syntax instead.")
+pub fn TestClient::new(app : @crescent.Mocket) -> TestClient {
+  TestClient(app)
 }
 
 ///|
