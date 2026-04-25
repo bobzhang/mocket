@@ -247,7 +247,7 @@ fn App::lookup_http_route(
 /// Pipeline phases, in order:
 ///
 ///   1. **WebSocket dispatch.** If the request looks like a WS handshake AND
-///      a matching `ws` route exists, hand off to `handle_websocket_route_async`
+///      a matching `ws` route exists, hand off to `@ws.handle_route_async`
 ///      and return (the response is sent inside the WS handler). A strict
 ///      upgrade request with no matching route yields `404`. A non-strict
 ///      lookalike with no match falls through to the HTTP pipeline.
