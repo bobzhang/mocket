@@ -620,39 +620,6 @@ pub fn runtime_id_for_connection(connection_id : String) -> String? {
 }
 
 ///|
-/// Test helper: returns Some(true) if the outgoing queue for this
-/// connection has been closed, Some(false) if it is still open, or None
-/// if the connection is not registered. Probes the queue with a
-/// non-blocking try_put of an empty binary sentinel; on a still-open
-/// queue, the sentinel is enqueued (clients should treat empty binary
-/// frames as benign). Intended only for runtime invariant tests, not
-/// production code.
-pub fn outgoing_queue_is_closed_for_test(connection_id : String) -> Bool? {
-  match native_ws_connection_hubs.get(connection_id) {
-    None => None
-    Some(runtime_id) =>
-      match native_ws_hubs.get(runtime_id) {
-        None => None
-        Some(hub) =>
-          match hub.connections.get(connection_id) {
-            None => None
-            Some(connection) => {
-              let result : Result[Bool, Error] = try? connection.outgoing.try_put(
-                SendBinary(b""),
-              )
-              Some(
-                match result {
-                  Err(_) => true
-                  _ => false
-                },
-              )
-            }
-          }
-      }
-  }
-}
-
-///|
 /// Returns the number of subscribers to the given channel across all runtimes.
 pub fn channel_member_count(channel : String) -> Int {
   let mut count = 0

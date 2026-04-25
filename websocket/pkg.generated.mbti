@@ -19,8 +19,6 @@ pub fn connection_is_registered(String) -> Bool
 
 pub async fn handle_route_async(String, @http.Request, @http.ServerConnection, WebSocketHandler, Map[String, String], Int?, Int, NativeWebSocketOverflowPolicy, Int?) -> Unit
 
-pub fn outgoing_queue_is_closed_for_test(String) -> Bool?
-
 pub fn registered_connection_count() -> Int
 
 pub fn registered_runtime_count() -> Int

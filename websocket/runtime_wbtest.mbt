@@ -1,9 +1,123 @@
 // Whitebox tests for the websocket runtime: drop-policy enqueue, hub
-// register/cleanup, ws_subscribe/unsubscribe, message decode/chunking.
-// Tests that exercise a full App + serve lifecycle live in root
-// websocket_async_native_wbtest.mbt and use the public introspection
-// helpers (registered_runtime_count, channel_member_count, etc.) from
-// this package.
+// register/cleanup, ws_subscribe/unsubscribe, message decode/chunking,
+// plus one lifecycle invariant test that drives handle_route_async
+// directly (no App + serve scaffolding) so it can read internal hub
+// state without a public test-only probe.
+// Higher-level tests that drive App + serve_on with multiple clients
+// live in root websocket_async_native_wbtest.mbt.
+
+///|
+suberror DirectLifecycleSocketBindUnavailable
+
+///|
+suberror DirectLifecycleNotReady
+
+///|
+async fn allocate_direct_lifecycle_server() -> @http.Server {
+  let addr = @socket.Addr::parse("127.0.0.1:0") catch {
+    _ => raise DirectLifecycleSocketBindUnavailable
+  }
+  let bind_check : Result[@http.Server, Error] = try? @http.Server::new(
+    addr,
+    reuse_addr=true,
+  )
+  match bind_check {
+    Ok(server) => server
+    Err(@os_error.OSError(errno, ..)) if errno == 1 =>
+      raise DirectLifecycleSocketBindUnavailable
+    Err(@os_error.OSError(_) as err) if err.is_EACCES() =>
+      raise DirectLifecycleSocketBindUnavailable
+    Err(err) => fail("unexpected bind check failure: \{err}")
+  }
+}
+
+///|
+/// Drives handle_route_async directly (no App, no serve_on) so the
+/// Close-event handler can inspect internal hub state without going
+/// through a public probe. Verifies the runtime's documented
+/// invariants for the Close phase:
+///   - the connection is still registered in the hub
+///   - the outgoing queue has already been closed (try_put raises)
+///
+/// The corresponding public-API behavior (channels are still populated
+/// before unregister; cleanup happens after the user handler returns)
+/// is covered by the App-driven test in root.
+async test "outgoing queue is closed before Close handler fires" {
+  let runtime_id = "test-direct-close-order"
+  let close_saw_registered : Ref[Bool?] = Ref::new(None)
+  let close_saw_queue_closed : Ref[Bool?] = Ref::new(None)
+  let handler : WebSocketHandler = event => {
+    match event {
+      Close(peer) =>
+        match resolve_native_ws_connection(peer.connection_id) {
+          Some((_, connection)) => {
+            close_saw_registered.val = Some(true)
+            let result : Result[Bool, Error] = try? connection.outgoing.try_put(
+              SendBinary(b""),
+            )
+            close_saw_queue_closed.val = Some(
+              match result {
+                Err(_) => true
+                _ => false
+              },
+            )
+          }
+          None => {
+            close_saw_registered.val = Some(false)
+            close_saw_queue_closed.val = Some(false)
+          }
+        }
+      _ => ()
+    }
+  }
+  defer cleanup_runtime(runtime_id)
+  @async.with_task_group(group => {
+    let server = allocate_direct_lifecycle_server()
+    let port = server.addr.port()
+    group.spawn_bg(no_wait=true, allow_failure=true, () => {
+      for ;; {
+        let conn_result : Result[(@http.ServerConnection, @socket.Addr), Error] = try? server.accept()
+        match conn_result {
+          Err(_) => break
+          Ok((conn, _addr)) =>
+            group.spawn_bg(allow_failure=true, () => {
+              let req = conn.read_request()
+              handle_route_async(
+                runtime_id,
+                req,
+                conn,
+                handler,
+                {},
+                None,
+                256,
+                DropOldest,
+                None,
+              )
+            })
+        }
+      }
+    })
+    let client = @async_websocket.connect("ws://127.0.0.1:\{port}/")
+    defer client.close()
+    @async.retry(FixedDelay(20), max_retry=50, () => {
+      guard registered_connection_count() > 0 else {
+        raise DirectLifecycleNotReady
+      }
+    })
+    client.send_close()
+    @async.retry(FixedDelay(20), max_retry=50, () => {
+      guard close_saw_queue_closed.val is Some(_) else {
+        raise DirectLifecycleNotReady
+      }
+    })
+    inspect(close_saw_registered.val, content="Some(true)")
+    inspect(close_saw_queue_closed.val, content="Some(true)")
+    server.close()
+  }) catch {
+    DirectLifecycleSocketBindUnavailable => return
+    err => raise err
+  }
+}
 
 ///|
 fn test_native_ws_connection(

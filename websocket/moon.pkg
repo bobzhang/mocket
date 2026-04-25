@@ -6,6 +6,11 @@ import {
   "moonbitlang/core/encoding/utf8",
 }
 
+import {
+  "moonbitlang/async/socket",
+  "moonbitlang/async/os_error",
+} for "wbtest"
+
 warnings = "+missing_doc+unnecessary_annotation"
 
 // Native-only (depends on moonbitlang/async/{http,websocket}).

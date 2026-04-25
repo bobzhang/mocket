@@ -332,10 +332,14 @@ async test "serve_on makes closed websocket peers inert after unregister" {
 }
 
 ///|
-async test "serve_on closes outgoing queues before close-handler cleanup" {
+async test "serve_on cleans up channel membership after client close" {
+  // The runtime invariant that the outgoing queue is closed BEFORE the
+  // user's Close handler runs is verified directly in the websocket
+  // package's whitebox test ("outgoing queue is closed before Close
+  // handler fires"). Here we only check the integration-level
+  // observable: after a client closes, the server-side hub state is
+  // cleaned up and the remaining client still works.
   let close_connection_id : Ref[String?] = Ref::new(None)
-  let close_saw_registered : Ref[Bool?] = Ref::new(None)
-  let close_saw_queue_closed : Ref[Bool?] = Ref::new(None)
   let close_channel_members : Ref[Int?] = Ref::new(None)
   @async.with_task_group(group => {
     let server = allocate_websocket_lifecycle_server()
@@ -352,16 +356,6 @@ async test "serve_on closes outgoing queues before close-handler cleanup" {
           close_channel_members.val = Some(
             native_ws_channel_member_count(channel),
           )
-          match @ws.outgoing_queue_is_closed_for_test(peer.connection_id()) {
-            Some(closed) => {
-              close_saw_registered.val = Some(true)
-              close_saw_queue_closed.val = Some(closed)
-            }
-            None => {
-              close_saw_registered.val = Some(false)
-              close_saw_queue_closed.val = Some(false)
-            }
-          }
         }
         _ => ()
       }
@@ -384,15 +378,11 @@ async test "serve_on closes outgoing queues before close-handler cleanup" {
 
     @async.retry(FixedDelay(20), max_retry=50, () => {
       guard close_connection_id.val is Some(_) &&
-        close_saw_registered.val is Some(_) &&
-        close_saw_queue_closed.val is Some(_) &&
         close_channel_members.val is Some(_) else {
         raise WebSocketLifecycleServerNotReady
       }
     })
 
-    inspect(close_saw_registered.val, content="Some(true)")
-    inspect(close_saw_queue_closed.val, content="Some(true)")
     inspect(close_channel_members.val, content="Some(2)")
 
     @async.retry(FixedDelay(20), max_retry=50, () => {
