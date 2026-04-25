@@ -969,7 +969,11 @@ filename, content-type) and body. `parse_multipart()` parses this format into
 
 ## 13. WebSocket: Persistent Bidirectional Channels
 
-**Files:** `websocket.mbt` (107 lines), `websocket_async.mbt` (591 lines)
+**Files:** `websocket/peer.mbt` (129 lines, types + WebSocketPeer
+methods), `websocket/hub.mbt` (359 lines, hub state + pub/sub
+primitives + introspection), `websocket/lifecycle.mbt` (324 lines,
+handshake + handle_route_async + I/O loop). Lives in its own
+sub-package; `App::ws` route registration stays at root.
 
 ### Why WebSocket?
 
@@ -1165,7 +1169,10 @@ CORS was described in [Section 1](#key-concepts). This package provides
 
 ### `uri/` -- RFC 3986 URI Parser
 
-**File:** `uri.mbt` (975 lines, zero dependencies)
+**Files:** `uri/types.mbt` (60 lines, Uri/Authority/Host/ParseError),
+`uri/char_class.mbt` (52 lines, RFC 3986 character predicates),
+`uri/parser.mbt` (448 lines, parse_* functions + `Uri::Uri` entry
+point). Zero dependencies on other Crescent packages.
 
 A URI (Uniform Resource Identifier) like `https://alice@example.com:8080/path?q=1#frag` has a
 formal grammar defined in RFC 3986. This package parses it into structured parts:
@@ -1280,23 +1287,25 @@ responsibility:
 
 | File                         | Lines | Responsibility                                |
 |------------------------------|-------|-----------------------------------------------|
-| `index.mbt`                  | 258   | `App` struct, route registration, groups   |
-| `dispatch.mbt`               | 52    | `dispatch()` -- synthetic request pipeline    |
+| `index.mbt`                  | 290   | `App` struct, route registration, groups      |
+| `dispatch.mbt`               | 48    | `dispatch()` -- synthetic request pipeline    |
 | `handler.mbt`                | 3     | `HttpHandler` type alias                      |
-| `middleware.mbt`             | 233   | `Middleware` type, onion chain execution      |
-| `event.mbt`                  | 33    | `Event` struct, JSON/param helpers      |
-| `typed_handler.mbt`          | 233   | Error-wrapping handlers, typed `get/post/...` |
+| `middleware.mbt`             | 231   | `Middleware` type, onion chain execution      |
+| `event.mbt`                  | 31    | `Event` struct, JSON/param helpers            |
+| `typed_handler.mbt`          | 231   | Error-wrapping handlers, typed `get/post/...` |
 | `path_match.mbt`             | 342   | Route lookup, allowed methods, WS routing     |
-| `param.mbt`                  | 112   | Route parameter extraction helpers            |
+| `param.mbt`                  | 103   | Route parameter extraction helpers            |
 | `not_found.mbt`              | 4     | Default 404 handler                           |
 | `resource.mbt`               | 55    | RESTful `resource()` CRUD registration        |
-| `static.mbt`                 | 445   | `ServeStaticProvider` trait, asset serving    |
-| `websocket.mbt`              | 107   | `WebSocketPeer`, events, handler type         |
-| `websocket_async.mbt`        | 591   | Native WS hub, pub/sub, connection mgmt       |
-| `serve_options.mbt`          | 259   | `NativeServeOptions`, validation              |
-| `serve_async.mbt`            | 1027  | Native server runtime, connection handling    |
+| `static_types.mbt`           | 50    | `StaticAssetMeta`, `ServeStaticProvider` trait |
+| `static_headers.mbt`         | 166   | Accept-Encoding / ETag / If-Modified-Since    |
+| `static_assets.mbt`          | 240   | `App::static_assets` mount + middleware       |
+| `serve_options.mbt`          | 244   | `NativeServeOptions`, validation              |
+| `serve_async.mbt`            | 614   | Native server runtime, dispatch, accept loop  |
+| `serve_response.mbt`         | 268   | Date cache, cookie serialization, response writing |
+| `serve_request_body.mbt`     | 139   | Bounded request-body reads + timeout policy   |
 | `error.mbt`                  | 11    | Error type definitions                        |
-| `core_reexports.mbt`         | 12    | Re-exports from `core/` for back-compat       |
+| `core_reexports.mbt`         | 21    | Re-exports from `core/` and `websocket/`      |
 | ~~`request.mbt`~~            |       | *(moved to `core/` sub-package)*              |
 | ~~`response.mbt`~~           |       | *(moved to `core/` sub-package)*              |
 | ~~`response_helpers.mbt`~~   |       | *(moved to `core/` sub-package)*              |
@@ -1308,3 +1317,6 @@ responsibility:
 | ~~`test_client.mbt`~~        |       | *(moved to `test_client/` sub-package)*       |
 | ~~`fetch.mbt`~~              |       | *(moved to `fetch/` sub-package)*             |
 | ~~`fetch.native.mbt`~~       |       | *(moved to `fetch/` sub-package)*             |
+| ~~`websocket.mbt`~~          |       | *(moved to `websocket/peer.mbt`)*             |
+| ~~`websocket_async.mbt`~~    |       | *(moved to `websocket/hub.mbt` + `lifecycle.mbt`)* |
+| ~~`static.mbt`~~             |       | *(split into `static_types.mbt` / `static_headers.mbt` / `static_assets.mbt`)* |
