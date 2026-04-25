@@ -220,6 +220,7 @@ graph TB
     end
 
     subgraph "Sub-Packages"
+        CORE_PKG["core/<br/>Request, Response, Responder"]
         ROUTER["router/<br/>RadixTree"]
         HTTP["httputil/<br/>Utilities"]
         COOKIE["cookie/<br/>Parsing"]
@@ -241,13 +242,17 @@ graph TB
     DISPATCH --> MW --> HANDLER --> RESPONDER
     MOCKET --> SERVE
     SERVE --> ASYNC
+    MOCKET --> CORE_PKG
     DISPATCH --> ROUTER
     DISPATCH --> HTTP
     MOCKET --> COOKIE
     CORS --> MOCKET
     MIDDLEWARE --> MOCKET
     STATICFILE --> MOCKET
-    FETCH --> MOCKET
+    FETCH --> CORE_PKG
+    TESTCLIENT --> MOCKET
+    CORE_PKG --> HTTP
+    CORE_PKG --> COOKIE
     HTTP --> CORE
     ROUTER -.->|zero deps| ROUTER
     URI -.->|zero deps| URI
@@ -280,11 +285,13 @@ graph TB
 Arrows point from dependent to dependency. Leaf packages (`router/`, `uri/`)
 have zero dependencies at all; `cookie/` depends only on `moonbitlang/core`
 modules. All three have no internal (crescent) dependencies, making them
-independently testable.
+independently testable. `core/` (request, response, responder types) sits
+under the root and is reused by `fetch/`, decoupling the HTTP client.
 
 ```mermaid
 graph LR
     ROOT["<b>root</b><br/>bobzhang/crescent"]
+    CORE_PKG["core/"]
     ROUTER["router/"]
     HTTP["httputil/"]
     COOKIE["cookie/"]
@@ -293,12 +300,17 @@ graph LR
     MW["middleware/"]
     SF["static_file/"]
     FETCH["fetch/"]
+    TC["test_client/"]
 
+    ROOT --> CORE_PKG
     ROOT --> ROUTER
     ROOT --> HTTP
     ROOT --> COOKIE
     ROOT --> ASYNC_LIB["moonbitlang/async<br/>{async, http, io,<br/>socket, websocket}"]
-    ROOT --> CORE["moonbitlang/core<br/>{json, string, buffer,<br/>strconv, cmp, utf8}"]
+    ROOT --> MCORE["moonbitlang/core<br/>{json, string, buffer,<br/>strconv, cmp, utf8}"]
+
+    CORE_PKG --> HTTP
+    CORE_PKG --> COOKIE
 
     HTTP --> CORE_SUB["core/{utf8, strconv, string}"]
     COOKIE --> CORE_SUB2["core/{buffer, json, string}"]
@@ -315,9 +327,11 @@ graph LR
     SF --> ROOT
     SF --> ASYNC_LIB3["moonbitlang/async<br/>{async, fs, http,<br/>io, os_error, socket}"]
 
-    FETCH --> ROOT
+    FETCH --> CORE_PKG
     FETCH --> URI
     FETCH --> HTTP
+
+    TC --> ROOT
 
     ROUTER -.->|"no deps"| ROUTER
     URI -.->|"no deps"| URI
@@ -776,7 +790,7 @@ under `/api/*`. A request to `/health` bypasses it entirely.
 
 ## 10. Responder: Polymorphic Responses
 
-**File:** `responder.mbt` (183 lines)
+**File:** `core/responder.mbt` (183 lines)
 
 ### The Problem
 
@@ -909,9 +923,9 @@ as a standalone HTTP utility library.
 
 | File                  | Lines | Responsibility                                |
 |-----------------------|-------|-----------------------------------------------|
-| `headers.mbt`        | 200   | Case-insensitive header get/set/merge/append  |
-| `encoding.mbt`       | 157   | URL percent-encoding, form data parsing       |
-| `multipart.mbt`      | 223   | Multipart form boundary detection + parsing   |
+| `headers.mbt`        | 208   | Case-insensitive header get/set/merge/append  |
+| `encoding.mbt`       | 177   | URL percent-encoding, form data parsing       |
+| `multipart.mbt`      | 226   | Multipart form boundary detection + parsing   |
 | `request_target.mbt` | 103   | RFC 7230 request-target: path, query, fragment|
 | `date.mbt`           | 241   | HTTP date formatting (RFC 1123) and parsing   |
 
@@ -1039,7 +1053,7 @@ on the server.
 
 ## 14. Native Server Runtime
 
-**File:** `serve_async.mbt` (946 lines)
+**File:** `serve_async.mbt` (1027 lines)
 
 This is the largest file in the codebase and the bridge between the MoonBit async
 runtime (`moonbitlang/async`) and the Crescent framework. It handles everything
@@ -1111,7 +1125,7 @@ All options are validated at startup (fail-fast -- the server won't start if
 
 ### `cookie/` -- Cookie Parsing and Serialization
 
-**File:** `cookie.mbt` (203 lines)
+**File:** `cookie.mbt` (200 lines)
 
 As described in [Section 1](#key-concepts), cookies are small key-value strings
 the server asks the browser to store. This package defines `CookieItem` with the
@@ -1148,7 +1162,7 @@ CORS was described in [Section 1](#key-concepts). This package provides
 
 ### `uri/` -- RFC 3986 URI Parser
 
-**File:** `uri.mbt` (873 lines, zero dependencies)
+**File:** `uri.mbt` (975 lines, zero dependencies)
 
 A URI (Uniform Resource Identifier) like `https://alice@example.com:8080/path?q=1#frag` has a
 formal grammar defined in RFC 3986. This package parses it into structured parts:
@@ -1158,7 +1172,7 @@ IPv6 addresses (e.g., `[::1]`) from domain names.
 
 ### `static_file/` -- File System Static Provider
 
-**File:** `static_file.mbt` (310 lines)
+**File:** `static_file.mbt` (311 lines)
 
 Serves files directly from a directory on disk. When a request arrives for
 `/assets/style.css`, this provider:
@@ -1218,7 +1232,7 @@ middleware ordering, response serialization, and error mapping in milliseconds.
 | WebSocket               | 1     | ~30   | `websocket_async_native_wbtest.mbt`    |
 | Route matching          | 2     | ~26   | `path_match.mbt`, `radix_tree_test.mbt`|
 | Route compilation       | 1     | ~14   | `route_pattern_test.mbt`               |
-| Responder               | 1     | ~20   | `responder_test.mbt`                   |
+| Responder               | 1     | ~20   | `core/responder_wbtest.mbt`            |
 | HTTP utilities          | 4     | ~50   | `httputil/*_test.mbt`                      |
 | Middleware               | 3     | ~10   | `middleware/*_test.mbt`                 |
 | CORS                    | 1     | ~10   | `cors/cors_test.mbt`                   |
@@ -1244,14 +1258,13 @@ middleware ordering, response serialization, and error mapping in milliseconds.
 |-------------------------------|---------|
 | Source files (`.mbt`)         | ~80     |
 | Lines of code (approx.)      | ~19,000 |
-| Lines of test code (approx.) | ~9,000  |
+| Lines of test code (approx.) | ~10,000 |
 | Internal packages             | 10      |
 | External dependencies         | 2       |
 | Public traits                 | 3       |
-| Public structs                | 16      |
+| Public structs                | 21      |
 | Public enums                  | 10      |
-| Public type aliases           | 4       |
-| Public functions              | ~124    |
+| Public functions              | ~157    |
 | Examples                      | 7       |
 | Benchmarks                    | 4       |
 
