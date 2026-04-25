@@ -537,7 +537,7 @@ classDiagram
 **Reading the diagram:**
 
 - `App` is the application container. It stores routes and middleware.
-- For each incoming request, App creates a `Event` containing the parsed
+- For each incoming request, App creates an `Event` containing the parsed
   `HttpRequest`, a blank `HttpResponse`, and the extracted route `params`.
 - An `HttpHandler` is a function that receives this event and returns something
   implementing the `Responder` trait. It does not directly return HTTP bytes --
@@ -1098,7 +1098,7 @@ For each accepted TCP connection, the runtime:
 3. **Checks for WebSocket upgrade** by looking for `Connection: upgrade` and
    `Upgrade: websocket` headers.
 4. **Routes** the request through `lookup_http_route`.
-5. **Constructs** a `Event` and runs the middleware + handler pipeline.
+5. **Constructs** an `Event` and runs the middleware + handler pipeline.
 6. **Serializes** the response via the `Responder` trait's `options()` and
    `output()`/`output_bytes()` methods.
 7. **Writes** the response bytes to the TCP connection.

@@ -62,28 +62,28 @@ pub fn App::routes(self : App) -> Iter[(String, String)] {
 /// Registers a route handler for the given HTTP method and path.
 pub fn App::on(
   self : App,
-  event : String,
+  http_method : String,
   path : String,
   handler : HttpHandler,
 ) -> Unit {
   let path = self.base_path + path
-  self.route_keys.push((event, path))
+  self.route_keys.push((http_method, path))
 
   // Cache routes by path type for faster lookup
   if !path.contains(":") && !path.contains("*") {
     // Static path: cache directly
-    if self.static_routes.get(event) is Some(method_routes) {
+    if self.static_routes.get(http_method) is Some(method_routes) {
       method_routes.set(path, handler)
     } else {
       let new_routes : Map[String, HttpHandler] = Map::from_array([
         (path, handler),
       ])
-      self.static_routes.set(event, new_routes)
+      self.static_routes.set(http_method, new_routes)
     }
   } else {
     // Dynamic path: compile and insert into radix tree
     let compiled = @router.CompiledRoute(path)
-    self.dynamic_routes.insert(event, compiled, handler)
+    self.dynamic_routes.insert(http_method, compiled, handler)
   }
 }
 

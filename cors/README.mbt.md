@@ -115,7 +115,7 @@ test "regular options is not preflight" {
 ## Low-Level Header Helpers
 
 For manual control, use `append_cors_preflight_headers` and
-`append_cors_headers` directly on a `Event`:
+`append_cors_headers` directly on an `Event`:
 
 ```mbt check
 ///|

@@ -266,7 +266,7 @@ propagation — no need to unwrap the status into an exception.
 
 When a handler wants to call out to another service, the cleanest approach
 is to extract the fetch call behind a function value and swap in a stub
-during tests. The `TestClient` dispatches _into_ a App — it doesn't
+during tests. The `TestClient` dispatches _into_ an App — it doesn't
 mock `fetch` itself — so for unit tests that hit an external API, inject a
 test double rather than intercepting the network.
 

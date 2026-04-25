@@ -16,11 +16,11 @@ import {
 pub struct TestClient {
   // private fields
 }
-pub fn TestClient::TestClient(@crescent.Mocket) -> Self
+pub fn TestClient::TestClient(@crescent.App) -> Self
 pub async fn TestClient::delete(Self, String, headers? : Map[String, String]) -> TestResponse
 pub async fn TestClient::get(Self, String, headers? : Map[String, String]) -> TestResponse
 #deprecated
-pub fn TestClient::new(@crescent.Mocket) -> Self
+pub fn TestClient::new(@crescent.App) -> Self
 pub async fn TestClient::post(Self, String, body? : Bytes, headers? : Map[String, String]) -> TestResponse
 pub async fn TestClient::put(Self, String, body? : Bytes, headers? : Map[String, String]) -> TestResponse
 pub async fn TestClient::request(Self, String, String, headers~ : Map[String, String], body~ : Bytes) -> TestResponse

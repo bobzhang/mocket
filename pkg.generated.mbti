@@ -38,64 +38,64 @@ pub suberror NativeServeError {
 pub suberror NetworkError derive(@debug.Debug)
 
 // Types and methods
-pub(all) struct HttpHandler(async (MocketEvent) -> &@core.Responder noraise)
-
-pub(all) struct Middleware(async (MocketEvent, MiddlewareNext) -> &@core.Responder noraise)
-
-pub(all) struct MiddlewareNext(async () -> &@core.Responder noraise)
-
-pub struct Mocket {
+pub struct App {
   // private fields
 }
-pub fn Mocket::Mocket(base_path? : String) -> Self
-pub fn Mocket::all(Self, String, async (MocketEvent) -> &@core.Responder) -> Unit
-pub fn Mocket::all_raw(Self, String, HttpHandler) -> Unit
-pub fn Mocket::connect(Self, String, async (MocketEvent) -> &@core.Responder) -> Unit
-pub fn Mocket::connect_raw(Self, String, HttpHandler) -> Unit
-pub fn Mocket::delete(Self, String, async (MocketEvent) -> &@core.Responder) -> Unit
-pub fn Mocket::delete_raw(Self, String, HttpHandler) -> Unit
-pub async fn Mocket::dispatch(Self, String, String, Map[String, String], Bytes) -> (@core.StatusCode, Map[String, String], Bytes)
-pub fn Mocket::get(Self, String, async (MocketEvent) -> &@core.Responder) -> Unit
-pub fn Mocket::get_raw(Self, String, HttpHandler) -> Unit
-pub fn Mocket::group(Self, String, (Self) -> Unit) -> Unit
-pub fn Mocket::has_not_found_handler(Self) -> Bool
-pub fn Mocket::head(Self, String, async (MocketEvent) -> &@core.Responder) -> Unit
-pub fn Mocket::head_raw(Self, String, HttpHandler) -> Unit
-pub fn Mocket::on(Self, String, String, HttpHandler) -> Unit
-pub fn Mocket::options(Self, String, async (MocketEvent) -> &@core.Responder) -> Unit
-pub fn Mocket::options_raw(Self, String, HttpHandler) -> Unit
-pub fn Mocket::patch(Self, String, async (MocketEvent) -> &@core.Responder) -> Unit
-pub fn Mocket::patch_raw(Self, String, HttpHandler) -> Unit
-pub fn Mocket::post(Self, String, async (MocketEvent) -> &@core.Responder) -> Unit
-pub fn Mocket::post_raw(Self, String, HttpHandler) -> Unit
-pub fn Mocket::put(Self, String, async (MocketEvent) -> &@core.Responder) -> Unit
-pub fn Mocket::put_raw(Self, String, HttpHandler) -> Unit
-pub fn Mocket::resource(Self, String, ResourceConfig) -> Unit
-pub fn Mocket::routes(Self) -> Iter[(String, String)]
-pub async fn Mocket::serve(Self, port~ : Int, shutdown? : @aqueue.Queue[Unit], options? : NativeServeOptions) -> Unit
-pub async fn Mocket::serve_on(Self, @http.Server, shutdown? : @aqueue.Queue[Unit], options? : NativeServeOptions) -> Unit
-pub fn Mocket::set_not_found_handler(Self, HttpHandler) -> Unit
-pub fn Mocket::static_assets(Self, String, &ServeStaticProvider) -> Unit
-pub fn Mocket::trace(Self, String, async (MocketEvent) -> &@core.Responder) -> Unit
-pub fn Mocket::trace_raw(Self, String, HttpHandler) -> Unit
-pub fn Mocket::use_middleware(Self, Middleware, base_path? : String) -> Unit
-pub fn Mocket::ws(Self, String, WebSocketHandler) -> Unit
+pub fn App::App(base_path? : String) -> Self
+pub fn App::all(Self, String, async (Event) -> &@core.Responder) -> Unit
+pub fn App::all_raw(Self, String, HttpHandler) -> Unit
+pub fn App::connect(Self, String, async (Event) -> &@core.Responder) -> Unit
+pub fn App::connect_raw(Self, String, HttpHandler) -> Unit
+pub fn App::delete(Self, String, async (Event) -> &@core.Responder) -> Unit
+pub fn App::delete_raw(Self, String, HttpHandler) -> Unit
+pub async fn App::dispatch(Self, String, String, Map[String, String], Bytes) -> (@core.StatusCode, Map[String, String], Bytes)
+pub fn App::get(Self, String, async (Event) -> &@core.Responder) -> Unit
+pub fn App::get_raw(Self, String, HttpHandler) -> Unit
+pub fn App::group(Self, String, (Self) -> Unit) -> Unit
+pub fn App::has_not_found_handler(Self) -> Bool
+pub fn App::head(Self, String, async (Event) -> &@core.Responder) -> Unit
+pub fn App::head_raw(Self, String, HttpHandler) -> Unit
+pub fn App::on(Self, String, String, HttpHandler) -> Unit
+pub fn App::options(Self, String, async (Event) -> &@core.Responder) -> Unit
+pub fn App::options_raw(Self, String, HttpHandler) -> Unit
+pub fn App::patch(Self, String, async (Event) -> &@core.Responder) -> Unit
+pub fn App::patch_raw(Self, String, HttpHandler) -> Unit
+pub fn App::post(Self, String, async (Event) -> &@core.Responder) -> Unit
+pub fn App::post_raw(Self, String, HttpHandler) -> Unit
+pub fn App::put(Self, String, async (Event) -> &@core.Responder) -> Unit
+pub fn App::put_raw(Self, String, HttpHandler) -> Unit
+pub fn App::resource(Self, String, ResourceConfig) -> Unit
+pub fn App::routes(Self) -> Iter[(String, String)]
+pub async fn App::serve(Self, port~ : Int, shutdown? : @aqueue.Queue[Unit], options? : NativeServeOptions) -> Unit
+pub async fn App::serve_on(Self, @http.Server, shutdown? : @aqueue.Queue[Unit], options? : NativeServeOptions) -> Unit
+pub fn App::set_not_found_handler(Self, HttpHandler) -> Unit
+pub fn App::static_assets(Self, String, &ServeStaticProvider) -> Unit
+pub fn App::trace(Self, String, async (Event) -> &@core.Responder) -> Unit
+pub fn App::trace_raw(Self, String, HttpHandler) -> Unit
+pub fn App::use_middleware(Self, Middleware, base_path? : String) -> Unit
+pub fn App::ws(Self, String, WebSocketHandler) -> Unit
 
-pub(all) struct MocketEvent {
+pub(all) struct Event {
   req : @core.HttpRequest
   res : @core.HttpResponse
   params : Map[String, StringView]
 }
-pub fn[T : @json.FromJson] MocketEvent::json(Self) -> T raise
-pub fn MocketEvent::param(Self, String) -> StringView?
-pub fn MocketEvent::param_decoded(Self, String) -> String?
-pub fn MocketEvent::param_int(Self, String) -> Int?
-pub fn MocketEvent::param_int64(Self, String) -> Int64?
-pub fn MocketEvent::request_id(Self) -> String?
-pub fn MocketEvent::require_param(Self, String) -> String raise
-pub fn MocketEvent::require_param_int(Self, String) -> Int raise
-pub fn MocketEvent::require_param_int64(Self, String) -> Int64 raise
-pub fn[T : @json.FromJson] MocketEvent::try_json(Self) -> Result[T, String]
+pub fn[T : @json.FromJson] Event::json(Self) -> T raise
+pub fn Event::param(Self, String) -> StringView?
+pub fn Event::param_decoded(Self, String) -> String?
+pub fn Event::param_int(Self, String) -> Int?
+pub fn Event::param_int64(Self, String) -> Int64?
+pub fn Event::request_id(Self) -> String?
+pub fn Event::require_param(Self, String) -> String raise
+pub fn Event::require_param_int(Self, String) -> Int raise
+pub fn Event::require_param_int64(Self, String) -> Int64 raise
+pub fn[T : @json.FromJson] Event::try_json(Self) -> Result[T, String]
+
+pub(all) struct HttpHandler(async (Event) -> &@core.Responder noraise)
+
+pub(all) struct Middleware(async (Event, MiddlewareNext) -> &@core.Responder noraise)
+
+pub(all) struct MiddlewareNext(async () -> &@core.Responder noraise)
 
 pub struct NativeServeOptions {
   max_connections : Int?
@@ -117,13 +117,13 @@ pub(all) enum NativeWebSocketOverflowPolicy {
 pub impl Show for NativeWebSocketOverflowPolicy
 
 pub struct ResourceConfig {
-  list : (async (MocketEvent) -> &@core.Responder)?
-  get : (async (MocketEvent) -> &@core.Responder)?
-  create : (async (MocketEvent) -> &@core.Responder)?
-  update : (async (MocketEvent) -> &@core.Responder)?
-  delete : (async (MocketEvent) -> &@core.Responder)?
+  list : (async (Event) -> &@core.Responder)?
+  get : (async (Event) -> &@core.Responder)?
+  create : (async (Event) -> &@core.Responder)?
+  update : (async (Event) -> &@core.Responder)?
+  delete : (async (Event) -> &@core.Responder)?
 }
-pub fn ResourceConfig::ResourceConfig(list? : async (MocketEvent) -> &@core.Responder, get? : async (MocketEvent) -> &@core.Responder, create? : async (MocketEvent) -> &@core.Responder, update? : async (MocketEvent) -> &@core.Responder, delete? : async (MocketEvent) -> &@core.Responder) -> Self
+pub fn ResourceConfig::ResourceConfig(list? : async (Event) -> &@core.Responder, get? : async (Event) -> &@core.Responder, create? : async (Event) -> &@core.Responder, update? : async (Event) -> &@core.Responder, delete? : async (Event) -> &@core.Responder) -> Self
 
 pub(all) struct StaticAssetMeta {
   asset_type : String?

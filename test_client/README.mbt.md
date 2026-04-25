@@ -22,7 +22,7 @@ finishes in microseconds.
 
 This package provides:
 
-- **`TestClient`** — wraps a `App` app. One verb per HTTP method
+- **`TestClient`** — wraps an `App`. One verb per HTTP method
   (`get`, `post`, `put`, `delete`) plus a generic `request` for anything
   else. Each call goes through routing + middleware + handler in the
   same order a real request would.
