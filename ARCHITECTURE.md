@@ -330,8 +330,11 @@ graph LR
     FETCH --> CORE_PKG
     FETCH --> URI
     FETCH --> HTTP
+    FETCH --> ASYNC_LIB4["moonbitlang/async/http"]
+    FETCH --> CORE_SUB4["core/{buffer, utf8}"]
 
     TC --> ROOT
+    TC --> CORE_SUB5["core/{json, utf8}"]
 
     ROUTER -.->|"no deps"| ROUTER
     URI -.->|"no deps"| URI
