@@ -6,7 +6,7 @@
     "moonbitlang/async": "0.17.0"
   },
   "readme": "README.md",
-  "repository": "https://github.com/bobzhang/mocket",
+  "repository": "https://github.com/bobzhang/crescent",
   "license": "Apache-2.0",
   "keywords": [
     "http",

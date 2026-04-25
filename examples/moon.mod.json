@@ -2,12 +2,12 @@
   "name": "bobzhang/crescent-examples",
   "version": "0.0.1",
   "deps": {
-    "bobzhang/crescent": "0.8.7",
+    "bobzhang/crescent": "0.9.0",
     "moonbitlang/x": "0.4.41",
     "moonbitlang/async": "0.17.0"
   },
   "readme": "../README.md",
-  "repository": "https://github.com/bobzhang/mocket",
+  "repository": "https://github.com/bobzhang/crescent",
   "license": "Apache-2.0",
   "description": "Example applications for the Crescent web framework.",
   "preferred-target": "native"
