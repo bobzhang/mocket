@@ -100,9 +100,13 @@ async test "outgoing queue is closed before Close handler fires" {
     let client = @async_websocket.connect("ws://127.0.0.1:\{port}/")
     defer client.close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
-      guard registered_connection_count() > 0 else {
-        raise DirectLifecycleNotReady
+      // Scope the readiness guard to THIS runtime's hub so concurrent
+      // tests / leaked connections elsewhere can't false-positive it.
+      let ready = match native_ws_hubs.get(runtime_id) {
+        Some(hub) => !hub.connections.is_empty()
+        None => false
       }
+      guard ready else { raise DirectLifecycleNotReady }
     })
     client.send_close()
     @async.retry(FixedDelay(20), max_retry=50, () => {
