@@ -131,8 +131,15 @@ pub fn HttpResponse::set_cookie(
 
 ///|
 /// Deletes a cookie by setting its value to empty and max-age to 0.
-pub fn HttpResponse::delete_cookie(self : HttpResponse, key : String) -> Unit {
-  self.set_cookie(key, "", max_age=0)
+/// Path defaults to "/".
+/// Pass `path`/`domain` to match cookies set with a narrower scope.
+pub fn HttpResponse::delete_cookie(
+  self : HttpResponse,
+  key : String,
+  path? : String = "/",
+  domain? : String,
+) -> Unit {
+  self.set_cookie(key, "", max_age=0, path~, domain?)
 }
 
 ///|

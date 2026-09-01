@@ -128,6 +128,32 @@ test "http response responder merges headers" {
 }
 
 ///|
+test "http response responder merges cookies" {
+  let res = HttpResponse(status_code=OK)
+  let source = HttpResponse(status_code=OK)
+  source.set_cookie("session", "abc", path="/", http_only=true)
+  let responder : &Responder = source
+  responder.options(res)
+  debug_inspect(
+    res.cookies.get("session"),
+    content=(
+      #|Some(
+      #|  {
+      #|    name: "session",
+      #|    value: "abc",
+      #|    max_age: None,
+      #|    path: Some("/"),
+      #|    domain: None,
+      #|    secure: None,
+      #|    http_only: Some(true),
+      #|    same_site: None,
+      #|  },
+      #|)
+    ),
+  )
+}
+
+///|
 test "http response responder outputs raw body" {
   let buf = Buffer()
   let source = HttpResponse(status_code=OK, raw_body=b"response body")

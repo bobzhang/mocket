@@ -2602,6 +2602,65 @@ async test "serve writes cookie headers" {
 }
 
 ///|
+async test "serve writes cookie headers to new HttpResponse" {
+  let app = @crescent.App()
+  app.get("/cookie", _event => {
+    let resp = HttpResponse::ok()
+    resp.set_cookie("session", "abc", path="/", http_only=true)
+    resp.body("ok")
+  })
+  with_test_server(app, port => {
+    let (headers, body) = issue_raw_request_response(
+      port, "GET /cookie HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+    )
+    assert_true(headers.has_prefix("HTTP/1.1 200 OK"))
+    inspect(body.trim(chars="\r\n"), content="ok")
+    inspect(
+      raw_header_value(headers, "Set-Cookie").unwrap_or(""),
+      content="session=abc; Path=/; HttpOnly",
+    )
+  }) catch {
+    SocketBindUnavailable => return
+    err => raise err
+  }
+}
+
+///|
+async test "serve deletes cookies with Max-Age=0 and Path=/" {
+  let app = @crescent.App()
+  app.post("/api/logout", event => {
+    event.res.delete_cookie("session")
+    "ok"
+  })
+  app.post("/api/logout-scoped", event => {
+    event.res.delete_cookie("session", path="/app", domain="example.com")
+    "ok"
+  })
+  with_test_server(app, port => {
+    let (headers, body) = issue_raw_request_response(
+      port, "POST /api/logout HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+    )
+    assert_true(headers.has_prefix("HTTP/1.1 200 OK"))
+    inspect(body.trim(chars="\r\n"), content="ok")
+    inspect(
+      raw_header_value(headers, "Set-Cookie").unwrap_or(""),
+      content="session=; Path=/; Max-Age=0",
+    )
+
+    let (scoped_headers, _) = issue_raw_request_response(
+      port, "POST /api/logout-scoped HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+    )
+    inspect(
+      raw_header_value(scoped_headers, "Set-Cookie").unwrap_or(""),
+      content="session=; Path=/app; Max-Age=0; Domain=example.com",
+    )
+  }) catch {
+    SocketBindUnavailable => return
+    err => raise err
+  }
+}
+
+///|
 async test "serve preserves explicit content-type headers without duplicates" {
   let app = @crescent.App()
   app.get("/custom", event => {

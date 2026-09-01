@@ -50,8 +50,8 @@ browser uses them locally to decide *whether* to send the cookie, but only the
    closes.
 2. **Persistent cookies** — have a `Max-Age` (or `Expires`): survive across
    browser restarts until they expire.
-3. **Deletion** — the server sends `Set-Cookie: name=; Max-Age=0` to ask the
-   browser to remove a cookie.
+3. **Deletion** — the server sends `Set-Cookie: name=; Max-Age=0; Path=..; Domain=..` 
+   to ask the browser to remove a cookie.
 
 This package provides:
 
