@@ -193,7 +193,7 @@ impl Responder for SseStreamResponder with fn output_bytes(_self) -> Bytes? {
 ///|
 /// The synthetic HttpHandler for SSE routes: returns the `SseStreamResponder`
 /// marker, so SSE requests flow through the ordinary middleware chain and
-/// finalization like any other GET route (materializing the event-stream
+/// finalization like any other route (materializing the event-stream
 /// headers with an empty body).
 fn sse_synthetic_handler() -> HttpHandler {
   _event => SseStreamResponder::{  }
