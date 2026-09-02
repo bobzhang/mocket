@@ -1,0 +1,40 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "bobzhang/crescent/sse"
+
+import {
+  "bobzhang/crescent/core",
+  "moonbitlang/async/http",
+  "moonbitlang/core/debug",
+}
+
+// Values
+
+// Errors
+
+// Types and methods
+pub struct SseEmitter {
+  // private fields
+}
+pub fn SseEmitter::SseEmitter(@http.ServerConnection, request? : @core.HttpRequest, params? : Map[String, String]) -> Self
+pub async fn SseEmitter::close(Self) -> Unit
+pub fn SseEmitter::header(Self, String) -> String?
+pub fn SseEmitter::param(Self, String) -> String?
+pub fn SseEmitter::request(Self) -> @core.HttpRequest
+pub async fn SseEmitter::send(Self, SseEvent) -> Unit
+pub async fn SseEmitter::send_comment(Self, String) -> Unit
+pub async fn SseEmitter::send_data(Self, String) -> Unit
+
+pub(all) struct SseEvent {
+  data : String
+  id : String?
+  event : String?
+  retry : Int?
+} derive(Eq, @debug.Debug)
+pub fn SseEvent::SseEvent(data~ : String, id? : String, event? : String, retry? : Int) -> Self
+pub impl Show for SseEvent
+
+pub(all) struct SseHandler(async (SseEmitter) -> Unit)
+
+// Type aliases
+
+// Traits

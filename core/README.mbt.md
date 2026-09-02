@@ -284,12 +284,13 @@ test "set and delete cookies" {
   assert_eq(c.path, Some("/"))
   assert_eq(c.http_only, Some(true))
 
-  // Deleting sets Max-Age=0
+  // Deleting sets Max-Age=0 and defaults Path=/
   res.delete_cookie("session")
   guard res.cookies.get("session") is Some(deleted) else {
     fail("expected deleted cookie")
   }
   assert_eq(deleted.max_age, Some(0))
+  assert_eq(deleted.path, Some("/"))
 }
 ```
 

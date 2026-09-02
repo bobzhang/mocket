@@ -53,3 +53,53 @@ async test "GET /json" {
     ),
   )
 }
+
+///|
+async test "GET /events is a server-sent events endpoint" {
+  let client = @test_client.TestClient(@crescent_wasm_demo.make_app())
+  let res = client.get("/events")
+  inspect(
+    res.status,
+    content=(
+      #|OK
+    ),
+  )
+  inspect(
+    res.headers.get("Content-Type").unwrap_or(""),
+    content="text/event-stream; charset=utf-8",
+  )
+  inspect(res.headers.get("Cache-Control").unwrap_or(""), content="no-cache")
+  inspect(res.body_text(), content="")
+}
+
+///|
+async test "GET /events/:id does not exist" {
+  let client = @test_client.TestClient(@crescent_wasm_demo.make_app())
+  let res = client.get("/events/extra")
+  inspect(
+    res.status,
+    content=(
+      #|NotFound
+    ),
+  )
+}
+
+///|
+async test "POST /events reaches the SSE route" {
+  let client = @test_client.TestClient(@crescent_wasm_demo.make_app())
+  // SSE routes match any method; a stream is not replayable, so the
+  // synthetic client materializes the event-stream headers with an empty
+  // body.
+  let res = client.post("/events", body=b"")
+  inspect(
+    res.status,
+    content=(
+      #|OK
+    ),
+  )
+  inspect(
+    res.headers.get("Content-Type").unwrap_or(""),
+    content="text/event-stream; charset=utf-8",
+  )
+  inspect(res.body_text(), content="")
+}

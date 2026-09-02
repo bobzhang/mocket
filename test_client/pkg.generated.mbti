@@ -36,4 +36,3 @@ pub fn TestResponse::body_text(Self) -> String
 // Type aliases
 
 // Traits
-

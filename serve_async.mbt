@@ -214,7 +214,7 @@ fn looks_like_websocket_handshake_request(request : @http.Request) -> Bool {
 
 ///|
 priv enum HttpRouteLookup {
-  Found(HttpHandler, Map[String, StringView])
+  Found(RouteHandler, Map[String, StringView])
   MethodNotAllowed(String)
   Options(String)
   NotFound
@@ -318,14 +318,20 @@ fn App::lookup_http_route(
 ///      `max_request_body_bytes` with `request_body_read_timeout_ms`; on
 ///      violation the helper sends `413` or `408` and we return early.
 ///   3. **Route lookup.** `lookup_http_route` returns one of:
-///      `Found` (normal), `MethodNotAllowed` (synthesize 405),
-///      `Options` (synthesize 204 + Allow for CORS-style preflight), or
-///      `NotFound` (user's `not_found_handler` if set, else default 404).
-///   4. **Handler + middleware execution.** Run the onion chain, optionally
-///      wrapped in `with_timeout_opt(handler_timeout_ms)`. The timeout covers
-///      handler execution only, NOT response transmission — otherwise a late
-///      timeout could tear down a partially-sent response and corrupt the
-///      keep-alive framing. A timed-out handler yields `504 Gateway Timeout`.
+///      `Found` (normal; the handler may be an SSE route — SSE is registered
+///      as a `*` route matching any method), `MethodNotAllowed` (synthesize
+///      405), `Options` (synthesize 204 + Allow for CORS-style preflight),
+///      or `NotFound` (user's `not_found_handler` if set, else default
+///      404).
+///   4. **Handler execution.** An SSE route runs the
+///      middleware chain and then streams for every method (middleware may
+///      reject the stream with an ordinary response; no handler timeout
+///      applies to the stream; the connection closes when streaming ends).
+///      All other routes run the onion chain, optionally wrapped in
+///      `with_timeout_opt(handler_timeout_ms)` — the timeout covers handler
+///      execution only, NOT response transmission, so a late timeout cannot
+///      tear down a partially-sent response; a timed-out handler yields
+///      `504 Gateway Timeout`.
 ///   5. **Response transmission.** `send_response_async` finalizes headers
 ///      (cookies, Date) and writes to the socket.
 ///
@@ -438,12 +444,15 @@ async fn App::handle_request(
   //   - MethodNotAllowed: path matches *some* method, but not this one (405)
   //   - Options: CORS-style preflight — synthesize 204 + Allow header
   //   - NotFound: no path match — prefer user's not_found_handler if set
-  let (params, handler) = match
+  // A `Found` route handler may be an SSE route: SSE is registered as a
+  // plain `*` route, so it flows through this same resolution, and only the
+  // response differs (an open event stream instead of a finished body).
+  let (params, route_handler) = match
     self.lookup_http_route(http_method_text, request_path) {
     Found(matched_handler, matched_params) => (matched_params, matched_handler)
-    MethodNotAllowed(allow) => ({}, method_not_allowed_handler(allow))
-    Options(allow) => ({}, options_handler(allow))
-    NotFound => ({}, self.resolve_not_found_handler(request_path))
+    MethodNotAllowed(allow) => ({}, Http(method_not_allowed_handler(allow)))
+    Options(allow) => ({}, Http(options_handler(allow)))
+    NotFound => ({}, Http(self.resolve_not_found_handler(request_path)))
   }
 
   // -------------------------------------------------------------------------
@@ -461,6 +470,24 @@ async fn App::handle_request(
     res: HttpResponse(status_code=OK),
     params,
   }
+  // An SSE route hands off to the streaming pipeline for every method:
+  // middleware chain first (middleware may reject the stream with an
+  // ordinary response), then events — no handler timeout applies to the
+  // stream.
+  match route_handler {
+    Sse(sse_handler) => {
+      handle_sse_request_async(
+        request,
+        conn,
+        self.middlewares,
+        event,
+        sse_handler,
+      )
+      return
+    }
+    _ => ()
+  }
+  let handler = route_handler.get()
   match options.handler_timeout_ms {
     Some(timeout_ms) =>
       // IMPORTANT: the timeout wraps only the handler+middleware chain, not

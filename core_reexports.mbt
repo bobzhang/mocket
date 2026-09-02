@@ -19,3 +19,6 @@ pub using @ws {
   type WebSocketHandler,
   type NativeWebSocketOverflowPolicy,
 }
+
+///|
+pub using @sse {type SseEvent, type SseEmitter, type SseHandler}

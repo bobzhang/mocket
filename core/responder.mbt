@@ -52,6 +52,7 @@ pub impl Responder for HttpRequest with fn output_bytes(self) -> Bytes? {
 pub impl Responder for HttpResponse with fn options(self, res) -> Unit {
   res.status_code = self.status_code
   @httputil.merge_headers_case_insensitive(res.headers, self.headers)
+  self.cookies.each((name, item) => res.cookies.set(name, item))
 }
 
 ///|
@@ -79,7 +80,7 @@ pub impl Responder for Json with fn options(_, res) -> Unit {
 
 ///|
 pub impl Responder for Json with fn output(self, buf) -> Unit {
-  buf.write_string_utf8(self.to_json().stringify())
+  buf.write_string_utf8(@json.to_json(self).stringify())
 }
 
 ///|

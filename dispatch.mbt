@@ -9,10 +9,10 @@ pub async fn App::dispatch(
   body : Bytes,
 ) -> (StatusCode, Map[String, String], Bytes) {
   let request_path = @httputil.request_target_path(url)
-  // Look up route
   let (params, handler) = match
     self.lookup_http_route(http_method, request_path) {
-    Found(matched_handler, matched_params) => (matched_params, matched_handler)
+    Found(matched_route_handler, matched_params) =>
+      (matched_params, matched_route_handler.get())
     MethodNotAllowed(allow) => ({}, method_not_allowed_handler(allow))
     Options(allow) => ({}, options_handler(allow))
     NotFound => ({}, self.resolve_not_found_handler(request_path))

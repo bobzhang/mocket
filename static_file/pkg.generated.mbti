@@ -20,4 +20,3 @@ pub impl @crescent.ServeStaticProvider for StaticFileProvider
 // Type aliases
 
 // Traits
-

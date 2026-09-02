@@ -25,10 +25,11 @@ web programming. Every web concept is introduced before it is used.
 11. [Typed Handlers and Error Mapping (`typed_handler.mbt`)](#11-typed-handlers-and-error-mapping)
 12. [HTTP Utilities (`httputil/`)](#12-http-utilities)
 13. [WebSocket: Persistent Bidirectional Channels](#13-websocket-persistent-bidirectional-channels)
-14. [Native Server Runtime (`serve_async.mbt`)](#14-native-server-runtime)
-15. [Sub-Packages](#15-sub-packages)
-16. [Testing Infrastructure](#16-testing-infrastructure)
-17. [Codebase Statistics](#17-codebase-statistics)
+14. [Server-Sent Events: One-Way Streaming](#14-server-sent-events-one-way-streaming)
+15. [Native Server Runtime (`serve_async.mbt`)](#15-native-server-runtime)
+16. [Sub-Packages](#16-sub-packages)
+17. [Testing Infrastructure](#17-testing-infrastructure)
+18. [Codebase Statistics](#18-codebase-statistics)
 
 ---
 
@@ -1061,7 +1062,53 @@ on the server.
 
 ---
 
-## 14. Native Server Runtime
+## 14. Server-Sent Events: One-Way Streaming
+
+**Files:** `sse/sse.mbt` (sub-package: `SseEvent`, `SseEmitter`,
+`SseHandler`), root `serve_response.mbt` (stream lifecycle), `index.mbt`
+(`App::sse` registration).
+
+### Why SSE?
+
+WebSocket gives a bidirectional channel, but most push use cases are
+one-way — a feed, a log tail, a progress bar. SSE is that minus the
+handshake: the server sends `Content-Type: text/event-stream` and keeps the
+response body open, pushing newline-delimited events. Browsers consume it
+through the `EventSource` API, which reconnects automatically when the
+connection drops.
+
+### How It Works
+
+- **Registration.** `App::sse` registers the route under the `*` method key,
+  so every HTTP verb invokes the handler; explicit `on` routes at the same
+  path keep precedence, and the route shows up in `routes()` as
+  `("*", path)`.
+- **Handler.** The handler is `async (SseEmitter) -> Unit` and streams until
+  it returns. The emitter serializes events as `field: value` lines
+  (`data`, plus optional `id`/`event`/`retry`) terminated by a blank line,
+  via `send`, `send_data`, `send_comment` (proxy keep-alive pings), and
+  `close`; the originating request is reachable through `request()` /
+  `header()`, route params through `param()`.
+- **Transport.** The response streams with chunked transfer encoding — no
+  `Content-Length` — plus `Content-Type: text/event-stream`,
+  `Cache-Control: no-cache`, `X-Accel-Buffering: no`, and
+  `Connection: close`; no handler timeout applies. When the handler returns
+  (or the client disconnects), the body is terminated and the connection
+  closed — `EventSource` reconnects.
+- **Middleware.** The request runs through the ordinary middleware chain
+  first, so auth/rate-limit middleware can reject the stream with an
+  ordinary response (e.g. `401`) before any event is sent.
+- **Errors.** Once the stream has started, a handler failure cannot become
+  an HTTP error page: the body is terminated, the connection closed, and
+  the error logged (`[crescent] sse handler error: ...`); cancellation
+  propagates for graceful shutdown.
+- **Synthetic dispatch.** `TestClient` cannot hold a stream, so dispatch
+  materializes the `SseStreamResponder` marker — event-stream headers, empty
+  body — without running the handler.
+
+---
+
+## 15. Native Server Runtime
 
 **File:** `serve_async.mbt` (1027 lines)
 
@@ -1131,7 +1178,7 @@ All options are validated at startup (fail-fast -- the server won't start if
 
 ---
 
-## 15. Sub-Packages
+## 16. Sub-Packages
 
 ### `cookie/` -- Cookie Parsing and Serialization
 
@@ -1215,7 +1262,7 @@ the root package no longer depends on `uri/` as a result.
 
 ---
 
-## 16. Testing Infrastructure
+## 17. Testing Infrastructure
 
 ### Test Client (`test_client/`)
 
@@ -1265,7 +1312,7 @@ middleware ordering, response serialization, and error mapping in milliseconds.
 
 ---
 
-## 17. Codebase Statistics
+## 18. Codebase Statistics
 
 | Metric                        | Count   |
 |-------------------------------|---------|
