@@ -67,7 +67,7 @@ pub fn HttpResponse::HttpResponse(status_code~ : StatusCode, headers? : Map[Stri
 pub fn HttpResponse::bad_request() -> Self
 pub fn HttpResponse::body(Self, &Responder) -> Self
 pub fn HttpResponse::created() -> Self
-pub fn HttpResponse::delete_cookie(Self, String) -> Unit
+pub fn HttpResponse::delete_cookie(Self, String, path? : String, domain? : String) -> Unit
 pub fn HttpResponse::error(StatusCode, String) -> Self
 pub fn HttpResponse::forbidden() -> Self
 pub fn HttpResponse::header(Self, String, String) -> Self
@@ -180,4 +180,3 @@ pub impl Responder for Bytes
 pub impl Responder for Json
 pub impl Responder for &ToJson
 pub impl Responder for StringView
-

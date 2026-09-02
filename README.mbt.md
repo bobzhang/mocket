@@ -532,7 +532,7 @@ of the mount prefix and resolved against any index filenames).
     None => anonymous_user()
   }
 
-  // Delete (sets Max-Age=0)
+  // Delete (sets Max-Age=0 and Path="/" )
   event.res.delete_cookie("session")
 ```
 

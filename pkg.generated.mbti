@@ -168,4 +168,3 @@ pub(open) trait ServeStaticProvider {
   fn get_index_names(Self) -> Array[String]
   fn get_fallthrough(Self) -> Bool
 }
-
