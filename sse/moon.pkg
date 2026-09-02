@@ -1,0 +1,8 @@
+import {
+  "bobzhang/crescent/core",
+  "moonbitlang/async/http",
+  "moonbitlang/core/buffer",
+  "moonbitlang/core/string",
+}
+
+warnings = "+missing_doc+unnecessary_annotation"

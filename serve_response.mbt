@@ -79,6 +79,13 @@ fn to_async_http_cookie(cookie : @cookie.CookieItem) -> @http.Cookie {
 }
 
 ///|
+fn to_async_http_cookies(
+  cookies : Map[String, @cookie.CookieItem],
+) -> Array[@http.Cookie] {
+  cookies.values().map(to_async_http_cookie).to_array()
+}
+
+///|
 test "append_cookie_headers with empty cookies does nothing" {
   let headers : Map[String, String] = Map([])
   let cookies : Map[String, @cookie.CookieItem] = Map([])
@@ -140,6 +147,129 @@ test "append_cookie_headers with multiple cookies joins with CRLF Set-Cookie" {
       #|Some("a=1\r\nSet-Cookie: b=2")
     ),
   )
+}
+
+///|
+/// Applies the SSE protocol headers to a response.
+fn apply_sse_headers(res : HttpResponse) -> Unit {
+  @httputil.set_header_case_insensitive(
+    res.headers,
+    "Content-Type",
+    "text/event-stream; charset=utf-8",
+  )
+  @httputil.set_header_case_insensitive(
+    res.headers,
+    "Cache-Control",
+    "no-cache",
+  )
+  @httputil.set_header_case_insensitive(res.headers, "X-Accel-Buffering", "no")
+}
+
+///|
+/// A marker responder for SSE routes. `options` applies the event-stream
+/// headers, and the body is empty: a stream is not replayable, so synthetic
+/// dispatch (TestClient) materializes a headers-only response, while the
+/// live path uses the same responder as the signal that the middleware
+/// chain reached the streaming endpoint. The payload is deliberately
+/// empty — the `SseHandler` travels separately through the pipeline, never
+/// inside this marker.
+priv struct SseStreamResponder {}
+
+///|
+impl Responder for SseStreamResponder with fn options(_self, res) -> Unit {
+  apply_sse_headers(res)
+}
+
+///|
+impl Responder for SseStreamResponder with fn output(_self, _buf) -> Unit {
+
+}
+
+///|
+impl Responder for SseStreamResponder with fn output_bytes(_self) -> Bytes? {
+  None
+}
+
+///|
+/// The synthetic HttpHandler for SSE routes: returns the `SseStreamResponder`
+/// marker, so SSE requests flow through the ordinary middleware chain and
+/// finalization like any other GET route (materializing the event-stream
+/// headers with an empty body).
+fn sse_synthetic_handler() -> HttpHandler {
+  _event => SseStreamResponder::{  }
+}
+
+///|
+/// Runs an SSE route on the live path: the request already went through the
+/// ordinary route resolution, so `event` is the standard per-request event
+/// (real body, headers, route params). The middleware chain runs first; a
+/// middleware that short-circuits (e.g. auth rejecting the stream) returns
+/// its own responder, which is then sent as an ordinary response. When the
+/// chain completes, the request streams — no handler timeout applies to the
+/// stream, and the connection is closed when it ends.
+async fn handle_sse_request_async(
+  request : @http.Request,
+  conn : @http.ServerConnection,
+  middlewares : Array[(String, Middleware)],
+  event : Event,
+  handler : @sse.SseHandler,
+) -> Unit {
+  let stream_requested : Ref[Bool] = Ref(false)
+  let responder = execute_middlewares(middlewares, event, _event => {
+    stream_requested.val = true
+    SseStreamResponder::{  }
+  })
+  if stream_requested.val {
+    stream_sse_response_async(conn, event, handler)
+  } else {
+    // A middleware short-circuited the chain: send its response normally.
+    send_response_async(request, conn, event.res, responder)
+  }
+}
+
+///|
+async fn stream_sse_response_async(
+  conn : @http.ServerConnection,
+  event : Event,
+  handler : @sse.SseHandler,
+) -> Unit {
+  apply_sse_headers(event.res)
+  let headers = event.res.headers
+  if !@httputil.has_header_case_insensitive(headers, "Date") {
+    headers.set("Date", current_http_date())
+  }
+  // The connection is closed as soon as streaming ends and never reused:
+  // advertise it so clients and proxies do not attempt keep-alive reuse.
+  if !@httputil.has_header_case_insensitive(headers, "Connection") {
+    headers.set("Connection", "close")
+  }
+  conn.send_response(
+    event.res.status_code.to_int(),
+    event.res.status_code.to_string(),
+    extra_headers=headers,
+    cookies=to_async_http_cookies(event.res.cookies),
+  )
+  // The emitter outlives the request buffer: params are copied to owned
+  // Strings before streaming starts.
+  let params : Map[String, String] = Map([])
+  event.params.each((k, v) => params.set(k, v.to_owned()))
+  let emitter = @sse.SseEmitter(conn, request=event.req, params~)
+  // The response is already streaming, so a handler failure cannot become
+  // an HTTP error page: the body is terminated and the connection closed
+  // on every path. Cancellation propagates so task groups (graceful
+  // shutdown) see it; other errors are logged rather than vanishing
+  // silently.
+  let mut handler_error : Error? = None
+  handler(emitter) catch {
+    err => handler_error = Some(err)
+  }
+  emitter.close()
+  conn.close()
+  match handler_error {
+    Some(err) if @async.is_cancellation_error(err) => raise err
+    Some(err) => println("[crescent] sse handler error: \{err}")
+    None => ()
+  }
 }
 
 ///|
@@ -228,7 +358,7 @@ async fn send_response_async(
     response.status_code.to_int(),
     response.status_code.to_string(),
     extra_headers=headers,
-    cookies=response.cookies.values().map(to_async_http_cookie).to_array(),
+    cookies=to_async_http_cookies(response.cookies),
   )
   if !response.raw_body.is_empty() {
     conn.write(response.raw_body)
@@ -258,7 +388,7 @@ async fn send_response_and_close_async(
     response.status_code.to_int(),
     response.status_code.to_string(),
     extra_headers=headers,
-    cookies=response.cookies.values().map(to_async_http_cookie).to_array(),
+    cookies=to_async_http_cookies(response.cookies),
   )
   if !response.raw_body.is_empty() {
     conn.write(response.raw_body)

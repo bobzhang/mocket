@@ -3,6 +3,7 @@ package "bobzhang/crescent"
 
 import {
   "bobzhang/crescent/core",
+  "bobzhang/crescent/sse",
   "bobzhang/crescent/websocket",
   "moonbitlang/async/aqueue",
   "moonbitlang/async/http",
@@ -70,6 +71,7 @@ pub fn App::routes(Self) -> Iter[(String, String)]
 pub async fn App::serve(Self, port~ : Int, shutdown? : @aqueue.Queue[Unit], options? : NativeServeOptions) -> Unit
 pub async fn App::serve_on(Self, @http.Server, shutdown? : @aqueue.Queue[Unit], options? : NativeServeOptions) -> Unit
 pub fn App::set_not_found_handler(Self, HttpHandler) -> Unit
+pub fn App::sse(Self, String, @sse.SseHandler) -> Unit
 pub fn App::static_assets(Self, String, &ServeStaticProvider) -> Unit
 pub fn App::trace(Self, String, async (Event) -> &@core.Responder) -> Unit
 pub fn App::trace_raw(Self, String, HttpHandler) -> Unit
@@ -121,6 +123,8 @@ pub struct ResourceConfig {
 }
 pub fn ResourceConfig::ResourceConfig(list? : async (Event) -> &@core.Responder, get? : async (Event) -> &@core.Responder, create? : async (Event) -> &@core.Responder, update? : async (Event) -> &@core.Responder, delete? : async (Event) -> &@core.Responder) -> Self
 
+type RouteHandler
+
 pub(all) struct StaticAssetMeta {
   asset_type : String?
   etag : String?
@@ -144,6 +148,12 @@ pub using @core {type HttpRequest}
 pub using @core {type HttpResponse}
 
 pub using @websocket {type NativeWebSocketOverflowPolicy}
+
+pub using @sse {type SseEmitter}
+
+pub using @sse {type SseEvent}
+
+pub using @sse {type SseHandler}
 
 pub using @core {type StatusCode}
 

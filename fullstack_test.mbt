@@ -261,6 +261,54 @@ async test "full-stack: middleware chain with typed handlers" {
 }
 
 ///|
+async test "full-stack: middleware applies to SSE endpoints" {
+  let app = @crescent.App()
+  app.use_middleware(@middleware.request_id())
+  app.use_middleware((event, next) => {
+    // Reject unauthenticated streams with an ordinary HTTP response.
+    // Exempt the harness readiness probe.
+    if event.req.url != "/__app_ready" &&
+      event.req.get_header("authorization") is None {
+      @crescent.HttpResponse(status_code=Unauthorized)
+      .body("login required")
+      .to_responder()
+    } else {
+      next()
+    }
+  })
+  app.sse("/events", emitter => emitter.send_data("hello"))
+  let client = @test_client.TestClient(app)
+
+  // Middleware short-circuit: the synthetic client sees the 401, not a stream.
+  let rejected = client.get("/events")
+  inspect(
+    rejected.status,
+    content=(
+      #|Unauthorized
+    ),
+  )
+  inspect(rejected.body_text(), content="login required")
+
+  // Chain completes: middleware headers ride along with the event-stream
+  // headers; the body is empty because a stream is not replayable.
+  let accepted = client.get("/events", headers={
+    "Authorization": "Bearer token",
+  })
+  inspect(
+    accepted.status,
+    content=(
+      #|OK
+    ),
+  )
+  assert_true(accepted.headers.get("X-Request-Id") is Some(_))
+  inspect(
+    accepted.headers.get("Content-Type").unwrap_or(""),
+    content="text/event-stream; charset=utf-8",
+  )
+  inspect(accepted.body_text(), content="")
+}
+
+///|
 async test "full-stack: event.json() shorthand parses request body" {
   let app = @crescent.App()
   app.post("/api/todos", event => {
@@ -317,4 +365,97 @@ async test "full-stack: require_param for string params" {
   let profile : UserProfile = res.body_json()
   assert_eq(profile.name, "alice")
   assert_eq(profile.email, "alice@test.com")
+}
+
+///|
+async test "full-stack: explicit methods win over SSE at the same path" {
+  let app = @crescent.App()
+  app.get("/events", _ => "plain http")
+  app.post("/events", _ => "http post")
+  app.sse("/events", emitter => emitter.send_data("streamed"))
+  let client = @test_client.TestClient(app)
+
+  // SSE is a `*` registration: explicit method routes at the same path
+  // keep precedence, like any `*` route.
+  let get = client.get("/events")
+  inspect(
+    get.status,
+    content=(
+      #|OK
+    ),
+  )
+  inspect(get.body_text(), content="plain http")
+
+  let post = client.post("/events", body=b"")
+  inspect(
+    post.status,
+    content=(
+      #|OK
+    ),
+  )
+  inspect(post.body_text(), content="http post")
+
+  // Methods with no explicit route reach the SSE route; synthetically
+  // that materializes the event-stream headers with an empty body.
+  let put = client.put("/events", body=b"")
+  inspect(
+    put.status,
+    content=(
+      #|OK
+    ),
+  )
+  inspect(
+    put.headers.get("Content-Type").unwrap_or(""),
+    content="text/event-stream; charset=utf-8",
+  )
+  inspect(put.body_text(), content="")
+
+  // Registration order does not matter: a GET registered after the SSE
+  // route still wins.
+  let app2 = @crescent.App()
+  app2.sse("/events", emitter => emitter.send_data("streamed"))
+  app2.get("/events", _ => "plain http")
+  let app2_client = @test_client.TestClient(app2)
+  inspect(app2_client.get("/events").body_text(), content="plain http")
+}
+
+///|
+async test "full-stack: SSE-only path accepts any method" {
+  let app = @crescent.App()
+  app.sse("/stream", emitter => emitter.send_data("streamed"))
+  let client = @test_client.TestClient(app)
+  // SSE is registered under `*`, so every method reaches the route; a
+  // stream is not replayable, so the synthetic client materializes the
+  // event-stream headers with an empty body.
+  let res = client.post("/stream", body=b"")
+  inspect(
+    res.status,
+    content=(
+      #|OK
+    ),
+  )
+  inspect(
+    res.headers.get("Content-Type").unwrap_or(""),
+    content="text/event-stream; charset=utf-8",
+  )
+  inspect(res.body_text(), content="")
+  // The GET behaves the same (headers-only synthetically).
+  let get = client.get("/stream")
+  inspect(
+    get.status,
+    content=(
+      #|OK
+    ),
+  )
+  inspect(
+    get.headers.get("Content-Type").unwrap_or(""),
+    content="text/event-stream; charset=utf-8",
+  )
+  // The route is visible to introspection as a `*` route.
+  debug_inspect(
+    app.routes().to_array(),
+    content=(
+      #|[("*", "/stream")]
+    ),
+  )
 }

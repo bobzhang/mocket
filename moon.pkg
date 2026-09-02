@@ -3,6 +3,7 @@ import {
   "bobzhang/crescent/httputil",
   "bobzhang/crescent/router",
   "bobzhang/crescent/cookie",
+  "bobzhang/crescent/sse",
   "bobzhang/crescent/websocket" @ws,
   "moonbitlang/async",
   "moonbitlang/async/http",

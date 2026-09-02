@@ -2661,6 +2661,313 @@ async test "serve deletes cookies with Max-Age=0 and Path=/" {
 }
 
 ///|
+async test "serve streams server-sent events" {
+  let app = @crescent.App()
+  app.sse("/events", emitter => {
+    emitter.send_data("hello")
+    emitter.send(SseEvent(data="world", id="1", event="update"))
+    emitter.send_comment("keepalive")
+  })
+  app.sse("/events/:room", emitter => {
+    emitter.send_data("room=\{emitter.param("room").unwrap_or("?")}")
+  })
+  with_test_server(app, port => {
+    let addr = @socket.Addr::parse("127.0.0.1:\{port}") catch {
+      _ => fail("invalid address")
+    }
+
+    let client = @socket.Tcp::connect(addr)
+    defer client.close()
+    client.write(
+      "GET /events HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+    )
+    let headers = client.read_until("\r\n\r\n").unwrap_or("")
+    assert_true(headers.has_prefix("HTTP/1.1 200 OK"))
+    inspect(
+      raw_header_value(headers, "Content-Type").unwrap_or(""),
+      content="text/event-stream; charset=utf-8",
+    )
+    inspect(
+      raw_header_value(headers, "Cache-Control").unwrap_or(""),
+      content="no-cache",
+    )
+    // SSE closes the connection when the stream ends; the Date header is
+    // applied like every other response path.
+    inspect(
+      raw_header_value(headers, "Connection").unwrap_or(""),
+      content="close",
+    )
+    assert_true(raw_header_value(headers, "Date") is Some(_))
+    // No Content-Length: the transport streams with chunked encoding.
+    inspect(
+      raw_header_value(headers, "Transfer-Encoding").unwrap_or(""),
+      content="chunked",
+    )
+    inspect(
+      read_chunked_http_body(client),
+      content="data: hello\n\nid: 1\nevent: update\ndata: world\n\n: keepalive\n\n",
+    )
+
+    // Dynamic SSE route: route params reach the handler via the client.
+    let room_client = @socket.Tcp::connect(addr)
+    defer room_client.close()
+    room_client.write(
+      "GET /events/lobby HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+    )
+    let room_headers = room_client.read_until("\r\n\r\n").unwrap_or("")
+    assert_true(room_headers.has_prefix("HTTP/1.1 200 OK"))
+    inspect(read_chunked_http_body(room_client), content="data: room=lobby\n\n")
+  }) catch {
+    SocketBindUnavailable => return
+    err => raise err
+  }
+}
+
+///|
+async test "serve applies middleware to SSE streams" {
+  let app = @crescent.App()
+  app.use_middleware(@middleware.request_id())
+  app.use_middleware((event, next) => {
+    // Reject unauthenticated streams with an ordinary HTTP response.
+    // Exempt the harness readiness probe.
+    if event.req.url != "/__app_ready" &&
+      event.req.get_header("authorization") is None {
+      @crescent.HttpResponse(status_code=Unauthorized)
+      .body("login required")
+      .to_responder()
+    } else {
+      next()
+    }
+  })
+  app.sse("/events", emitter => emitter.send_data("hello"))
+  with_test_server(app, port => {
+    let addr = @socket.Addr::parse("127.0.0.1:\{port}") catch {
+      _ => fail("invalid address")
+    }
+
+    // Unauthenticated: the middleware short-circuits before the stream
+    // starts, so the client gets a plain 401 — not an event stream.
+    let rejected = @socket.Tcp::connect(addr)
+    defer rejected.close()
+    rejected.write(
+      "GET /events HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+    )
+    let (rejected_headers, rejected_body) = read_raw_http_response(rejected)
+    assert_true(rejected_headers.has_prefix("HTTP/1.1 401 "))
+    inspect(rejected_body.trim(chars="\r\n"), content="login required")
+
+    // Authenticated: the chain completes, the stream starts, and
+    // middleware-contributed headers (X-Request-Id) ride along.
+    let accepted = @socket.Tcp::connect(addr)
+    defer accepted.close()
+    accepted.write(
+      "GET /events HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer token\r\nConnection: close\r\n\r\n",
+    )
+    let headers = accepted.read_until("\r\n\r\n").unwrap_or("")
+    assert_true(headers.has_prefix("HTTP/1.1 200 OK"))
+    assert_true(raw_header_value(headers, "X-Request-Id") is Some(_))
+    inspect(read_chunked_http_body(accepted), content="data: hello\n\n")
+  }) catch {
+    SocketBindUnavailable => return
+    err => raise err
+  }
+}
+
+///|
+async test "serve exposes the request to SSE handlers" {
+  let app = @crescent.App()
+  app.sse("/events/:room", emitter => {
+    // Last-Event-ID enables resuming after a client reconnect; query
+    // params and route params let one endpoint serve many streams.
+    let last_id = emitter.header("Last-Event-ID").unwrap_or("none")
+    let room = emitter.param("room").unwrap_or("?")
+    let channel = emitter.request().query_params().get("channel").unwrap_or("?")
+    emitter.send_data("id=\{last_id} room=\{room} channel=\{channel}")
+  })
+  with_test_server(app, port => {
+    let addr = @socket.Addr::parse("127.0.0.1:\{port}") catch {
+      _ => fail("invalid address")
+    }
+    let client = @socket.Tcp::connect(addr)
+    defer client.close()
+    client.write(
+      "GET /events/lobby?channel=news HTTP/1.1\r\nHost: localhost\r\nLast-Event-ID: 42\r\nConnection: close\r\n\r\n",
+    )
+    let headers = client.read_until("\r\n\r\n").unwrap_or("")
+    assert_true(headers.has_prefix("HTTP/1.1 200 OK"))
+    inspect(
+      read_chunked_http_body(client),
+      content="data: id=42 room=lobby channel=news\n\n",
+    )
+  }) catch {
+    SocketBindUnavailable => return
+    err => raise err
+  }
+}
+
+///|
+async test "serve prefers explicit methods over an SSE route at the same path" {
+  let app = @crescent.App()
+  app.get("/events", _ => "plain http")
+  app.post("/events", _ => "http post")
+  app.sse("/events", emitter => emitter.send_data("streamed"))
+  with_test_server(app, port => {
+    // SSE is a `*` registration: explicit method routes at the same path
+    // keep precedence.
+    let (get_headers, get_body) = issue_raw_request_response(
+      port, "GET /events HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+    )
+    assert_true(get_headers.has_prefix("HTTP/1.1 200 OK"))
+    inspect(get_body.trim(chars="\r\n"), content="plain http")
+
+    let (post_headers, post_body) = issue_raw_request_response(
+      port, "POST /events HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+    )
+    assert_true(post_headers.has_prefix("HTTP/1.1 200 OK"))
+    inspect(post_body.trim(chars="\r\n"), content="http post")
+
+    // Methods with no explicit route reach the SSE route and stream.
+    let addr = @socket.Addr::parse("127.0.0.1:\{port}") catch {
+      _ => fail("invalid address")
+    }
+    let client = @socket.Tcp::connect(addr)
+    defer client.close()
+    client.write(
+      "PUT /events HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+    )
+    let headers = client.read_until("\r\n\r\n").unwrap_or("")
+    assert_true(headers.has_prefix("HTTP/1.1 200 OK"))
+    inspect(
+      raw_header_value(headers, "Content-Type").unwrap_or(""),
+      content="text/event-stream; charset=utf-8",
+    )
+    inspect(read_chunked_http_body(client), content="data: streamed\n\n")
+  }) catch {
+    SocketBindUnavailable => return
+    err => raise err
+  }
+}
+
+///|
+async test "serve invokes an SSE handler for any method" {
+  let app = @crescent.App()
+  app.sse("/events", emitter => emitter.send_data("streamed"))
+  with_test_server(app, port => {
+    // SSE is registered under `*`: a POST streams exactly like a GET.
+    let addr = @socket.Addr::parse("127.0.0.1:\{port}") catch {
+      _ => fail("invalid address")
+    }
+    let client = @socket.Tcp::connect(addr)
+    defer client.close()
+    client.write(
+      "POST /events HTTP/1.1\r\nHost: localhost\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+    )
+    let headers = client.read_until("\r\n\r\n").unwrap_or("")
+    assert_true(headers.has_prefix("HTTP/1.1 200 OK"))
+    inspect(
+      raw_header_value(headers, "Content-Type").unwrap_or(""),
+      content="text/event-stream; charset=utf-8",
+    )
+    inspect(read_chunked_http_body(client), content="data: streamed\n\n")
+
+    // HEAD also reaches the handler (it streams like any other verb).
+    let head_client = @socket.Tcp::connect(addr)
+    defer head_client.close()
+    head_client.write(
+      "HEAD /events HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+    )
+    let head_headers = head_client.read_until("\r\n\r\n").unwrap_or("")
+    assert_true(head_headers.has_prefix("HTTP/1.1 200 OK"))
+    inspect(
+      raw_header_value(head_headers, "Content-Type").unwrap_or(""),
+      content="text/event-stream; charset=utf-8",
+    )
+    inspect(read_chunked_http_body(head_client), content="data: streamed\n\n")
+  }) catch {
+    SocketBindUnavailable => return
+    err => raise err
+  }
+}
+
+///|
+/// Reads the payload of one chunked-encoding chunk from the client socket
+/// (SSE events are flushed one chunk at a time). Returns "" when the stream
+/// ends (final `0` chunk) or the connection is closed, so a server that
+/// shut down after the initial response surfaces as an empty frame instead
+/// of a hang.
+async fn read_sse_frame(client : @socket.Tcp) -> String {
+  try {
+    let size = @string.parse_int(
+      client.read_until("\r\n").unwrap_or("").trim(chars="\r\n"),
+      base=16,
+    ) catch {
+      _ => return ""
+    }
+    if size == 0 {
+      return ""
+    }
+    let payload = client.read_exactly(size)
+    ignore(client.read_exactly(2)) // chunk trailer "\r\n"
+    @utf8.decode(payload) catch {
+      _ => ""
+    }
+  } catch {
+    _ => ""
+  }
+}
+
+///|
+/// The server must hold an SSE connection open across handler sleeps: after
+/// the initial response, events keep arriving on the same connection at the
+/// handler's ~500ms pace, and the connection is not closed until the
+/// handler returns.
+async test "serve keeps an SSE stream open across handler sleeps" {
+  let app = @crescent.App()
+  app.sse("/events", emitter => {
+    for i in 1..<=3 {
+      emitter.send_data("tick \{i}")
+      @async.sleep(500)
+    }
+  })
+  with_test_server(app, port => {
+    let addr = @socket.Addr::parse("127.0.0.1:\{port}") catch {
+      _ => fail("invalid address")
+    }
+    let client = @socket.Tcp::connect(addr)
+    defer client.close()
+    client.write(
+      "GET /events HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n",
+    )
+    let headers = client.read_until("\r\n\r\n").unwrap_or("")
+    assert_true(headers.has_prefix("HTTP/1.1 200 OK"))
+    inspect(
+      raw_header_value(headers, "Content-Type").unwrap_or(""),
+      content="text/event-stream; charset=utf-8",
+    )
+
+    // Each read blocks until the next event arrives; an empty frame means
+    // the server closed the connection early and the inspect below fails.
+    let connected_at = @async.now()
+    inspect(read_sse_frame(client), content="data: tick 1\n\n")
+    let first_at = @async.now()
+    inspect(read_sse_frame(client), content="data: tick 2\n\n")
+    let second_at = @async.now()
+    inspect(read_sse_frame(client), content="data: tick 3\n\n")
+    let third_at = @async.now()
+    // The first event is sent immediately; the next two must be paced by
+    // the handler's sleeps. A wide margin keeps CI jitter out of the
+    // picture while still proving the connection stayed open and the
+    // handler kept running long after the initial response.
+    assert_true(first_at - connected_at < 400L)
+    assert_true(second_at - first_at >= 400L)
+    assert_true(third_at - second_at >= 400L)
+  }) catch {
+    SocketBindUnavailable => return
+    err => raise err
+  }
+}
+
+///|
 async test "serve preserves explicit content-type headers without duplicates" {
   let app = @crescent.App()
   app.get("/custom", event => {

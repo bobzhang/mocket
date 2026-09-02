@@ -426,13 +426,13 @@ Share a path prefix and middleware across related routes:
 
 ## Route Patterns
 
-| Pattern | Example URL | Captures |
-|---------|-------------|----------|
-| `/users` | `/users` | (exact match) |
-| `/users/:id` | `/users/42` | `event.param("id")` = `"42"` |
-| `/users/:id/posts/:pid` | `/users/1/posts/99` | two params |
-| `/files/*` | `/files/readme.txt` | one segment in `_` |
-| `/static/**` | `/static/css/main.css` | any depth in `_` |
+| Pattern                 | Example URL            | Captures                     |
+| ----------------------- | ---------------------- | ---------------------------- |
+| `/users`                | `/users`               | (exact match)                |
+| `/users/:id`            | `/users/42`            | `event.param("id")` = `"42"` |
+| `/users/:id/posts/:pid` | `/users/1/posts/99`    | two params                   |
+| `/files/*`              | `/files/readme.txt`    | one segment in `_`           |
+| `/static/**`            | `/static/css/main.css` | any depth in `_`             |
 
 Matching uses a radix tree — O(path length), not O(number of routes).
 
@@ -480,6 +480,42 @@ test "static routes are flagged" {
 `WebSocketPeer` methods: `text(msg)`, `binary(data)`, `subscribe(channel)`,
 `unsubscribe(channel)`, `publish(channel, msg)`.
 
+## Server-Sent Events
+
+One-way event streaming over plain HTTP — no handshake, consumed by the
+browser `EventSource` API, which reconnects automatically:
+
+```moonbit nocheck
+  app.sse("/events", emitter => {
+    emitter.send_data("hello")
+    emitter.send(SseEvent(data="update", id="1", event="update"))
+    emitter.send_comment("keepalive")  // proxy ping; ignored by EventSource
+  })
+```
+
+The handler receives an `SseEmitter` and streams until it returns; the
+response uses chunked transfer encoding (`Content-Type: text/event-stream`)
+so events are delivered incrementally. `app.sse` registers a `*` route — no
+separate SSE table — so the handler is invoked for every HTTP method, with
+explicit `on`-registered routes at the same path keeping precedence, and
+the route shows up in `routes()` as `("*", path)`. Dynamic routes work like
+HTTP routes, with params read via `emitter.param("name")`:
+
+```moonbit nocheck
+  app.sse("/events/:room", emitter => {
+    let room = emitter.param("room").unwrap_or("lobby")
+    emitter.send_data("welcome to \{room}")
+  })
+```
+
+`SseEmitter` methods: `send(event)`, `send_data(text)`, `send_comment(text)`,
+`close()`, `param(name)`, and `header(name)`/`request()` for the originating
+request.
+SSE requests run through the middleware chain like ordinary routes —
+auth, rate limiting, and request-ID middleware apply, and middleware can
+reject the stream (e.g. `401`) before it starts. The stream itself is not
+subject to the handler timeout; the handler owns the connection.
+
 ## Static Files
 
 ```moonbit nocheck
@@ -510,14 +546,14 @@ providers can pull from S3, an embedded asset bundle, a zip file, a CDN cache,
 etc. The path argument to each method is the asset's URL path (already stripped
 of the mount prefix and resolved against any index filenames).
 
-| Method             | Purpose                                                        |
-| ------------------ | -------------------------------------------------------------- |
-| `get_meta`         | Resolve the path to asset metadata (size, mtime, ETag); `None` means "not found" |
-| `get_contents`     | Produce the response body for the resolved asset               |
-| `get_type`         | Return the `Content-Type` for the path (`None` skips the header) |
-| `get_encodings`    | Provider-wide `Content-Encoding` → variant suffix map (e.g. `gzip` → `.gz`) |
-| `get_index_names`  | Filenames to try when the request points at a directory        |
-| `get_fallthrough`  | If `true`, a miss falls through to the next route instead of 404 |
+| Method            | Purpose                                                                          |
+| ----------------- | -------------------------------------------------------------------------------- |
+| `get_meta`        | Resolve the path to asset metadata (size, mtime, ETag); `None` means "not found" |
+| `get_contents`    | Produce the response body for the resolved asset                                 |
+| `get_type`        | Return the `Content-Type` for the path (`None` skips the header)                 |
+| `get_encodings`   | Provider-wide `Content-Encoding` → variant suffix map (e.g. `gzip` → `.gz`)      |
+| `get_index_names` | Filenames to try when the request points at a directory                          |
+| `get_fallthrough` | If `true`, a miss falls through to the next route instead of 404                 |
 
 ## Cookies
 
@@ -692,13 +728,13 @@ test "redirect helpers" {
 
 All `get`/`post`/`put`/`patch`/`delete` handlers catch errors automatically:
 
-| What you write | What the client gets |
-|----------------|---------------------|
+| What you write                                 | What the client gets                                     |
+| ---------------------------------------------- | -------------------------------------------------------- |
 | `raise HttpError(BadRequest, "invalid email")` | 400 `{"error":{"status":400,"message":"invalid email"}}` |
-| `raise HttpError(NotFound, "not found")` | 404 with JSON body |
-| `event.json()` on bad input | 400 with parse error message |
-| `event.require_param_int("id")` on `"abc"` | 400 `"must be a valid integer"` |
-| Any unhandled error | 500 Internal Server Error |
+| `raise HttpError(NotFound, "not found")`       | 404 with JSON body                                       |
+| `event.json()` on bad input                    | 400 with parse error message                             |
+| `event.require_param_int("id")` on `"abc"`     | 400 `"must be a valid integer"`                          |
+| Any unhandled error                            | 500 Internal Server Error                                |
 
 For handlers that should never raise (health checks, plain text), use `get_raw`:
 
@@ -721,12 +757,12 @@ For custom error responses, use `try_json`:
 
 Middleware implementations live in the `bobzhang/crescent/middleware` sub-package.
 
-| Middleware | What it does |
-|-----------|-------------|
-| `@middleware.security_headers()` | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`, `Referrer-Policy: strict-origin-when-cross-origin` |
-| `@middleware.request_id()` | Adds `X-Request-Id` header; preserves incoming IDs for distributed tracing. Access via `event.request_id()` |
-| `@middleware.rate_limit(requests_per_window~, window_ms~)` | Fixed-window rate limiter. Returns `429 Too Many Requests` with a `Retry-After` header when the limit is exceeded. |
-| `@cors.handle_cors()` | Full CORS support: preflight `OPTIONS` handling, configurable origins/methods/credentials |
+| Middleware                                                 | What it does                                                                                                                          |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `@middleware.security_headers()`                           | `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`, `Referrer-Policy: strict-origin-when-cross-origin` |
+| `@middleware.request_id()`                                 | Adds `X-Request-Id` header; preserves incoming IDs for distributed tracing. Access via `event.request_id()`                           |
+| `@middleware.rate_limit(requests_per_window~, window_ms~)` | Fixed-window rate limiter. Returns `429 Too Many Requests` with a `Retry-After` header when the limit is exceeded.                    |
+| `@cors.handle_cors()`                                      | Full CORS support: preflight `OPTIONS` handling, configurable origins/methods/credentials                                             |
 
 Writing custom middleware:
 
@@ -750,14 +786,14 @@ fn rate_limiter() -> Middleware {
 
 ### Parameters
 
-| Method | Returns | On missing/invalid |
-|--------|---------|-------------------|
-| `event.param("name")` | `String?` | `None` |
-| `event.param_int("id")` | `Int?` | `None` |
-| `event.param_int64("id")` | `Int64?` | `None` |
-| `event.require_param("name")` | `String` | raises 400 |
-| `event.require_param_int("id")` | `Int` | raises 400 |
-| `event.require_param_int64("id")` | `Int64` | raises 400 |
+| Method                            | Returns   | On missing/invalid |
+| --------------------------------- | --------- | ------------------ |
+| `event.param("name")`             | `String?` | `None`             |
+| `event.param_int("id")`           | `Int?`    | `None`             |
+| `event.param_int64("id")`         | `Int64?`  | `None`             |
+| `event.require_param("name")`     | `String`  | raises 400         |
+| `event.require_param_int("id")`   | `Int`     | raises 400         |
+| `event.require_param_int64("id")` | `Int64`   | raises 400         |
 
 ```mbt check
 ///|
@@ -785,16 +821,16 @@ test "require_param raises on missing" {
 
 ### Body & Query
 
-| Method | Returns | Notes |
-|--------|---------|-------|
-| `event.json[T]()` | `T` | Raises on invalid JSON |
-| `event.try_json[T]()` | `Result[T, String]` | For custom error handling |
-| `event.req.body[T]()` | `T` | Via `BodyReader` trait (`String`, `Bytes`, `Json`) |
-| `event.req.get_query("key")` | `String?` | URL-decoded, cached |
-| `event.req.query_params()` | `Map[String, String]` | All query params, cached |
-| `event.req.path()` | `String` | Path without query string, cached |
-| `event.req.content_type()` | `String?` | Content-Type header value |
-| `event.request_id()` | `String?` | Requires `@middleware.request_id()` middleware |
+| Method                       | Returns               | Notes                                              |
+| ---------------------------- | --------------------- | -------------------------------------------------- |
+| `event.json[T]()`            | `T`                   | Raises on invalid JSON                             |
+| `event.try_json[T]()`        | `Result[T, String]`   | For custom error handling                          |
+| `event.req.body[T]()`        | `T`                   | Via `BodyReader` trait (`String`, `Bytes`, `Json`) |
+| `event.req.get_query("key")` | `String?`             | URL-decoded, cached                                |
+| `event.req.query_params()`   | `Map[String, String]` | All query params, cached                           |
+| `event.req.path()`           | `String`              | Path without query string, cached                  |
+| `event.req.content_type()`   | `String?`             | Content-Type header value                          |
+| `event.request_id()`         | `String?`             | Requires `@middleware.request_id()` middleware     |
 
 ```mbt check
 ///|
@@ -890,6 +926,7 @@ test "HttpMethod pattern matching" {
 
 ```
 bobzhang/crescent             — Core: routing, middleware, serving, WebSocket
+bobzhang/crescent/sse         — Server-Sent Events streaming
 bobzhang/crescent/httputil    — HTTP protocol: headers, dates, URL encoding
 bobzhang/crescent/cors        — CORS middleware
 bobzhang/crescent/fetch       — HTTP client
