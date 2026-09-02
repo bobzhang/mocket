@@ -67,4 +67,3 @@ pub fn WebSocketPeer::unsubscribe(Self, String) -> Unit
 // Type aliases
 
 // Traits
-
