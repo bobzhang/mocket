@@ -1,5 +1,6 @@
 import {
   "moonbitlang/core/buffer",
+  "moonbitlang/core/lexbuf",
   "moonbitlang/core/json",
   "moonbitlang/core/string",
 }
