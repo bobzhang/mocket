@@ -429,7 +429,7 @@ order:
    exists but the client sent DELETE). Returns 405 with an `Allow` header listing
    which methods *are* supported.
 4. **Implicit OPTIONS** -- If the URL exists and the client sent OPTIONS, return
-   200 with `Allow` header. This supports CORS preflight (see
+   204 No Content with an `Allow` header. This supports CORS preflight (see
    [Section 1](#key-concepts)).
 5. **404 Not Found** -- No route matched. Uses the custom handler if registered,
    otherwise a default "Not Found" response.

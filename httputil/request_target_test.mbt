@@ -159,6 +159,16 @@ test "request_target_path still normalizes path double-slashes" {
 }
 
 ///|
+test "query_params with forward slash values should not mess up the path" {
+  assert_eq(
+    request_target_path(
+      "/auth/google/callback?state=1a0f2e1bab91&iss=https://accounts.google.com&code=4/0ATsMZqDsBYfXVwvgrOEV2e1CGu4dc4cjaxGwx-o-mXW1PJT08b8bwNFetDBFBAgfcXnpGg&scope=email+profile+https://www.googleapis.com/auth/userinfo.email+openid+https://www.googleapis.com/auth/userinfo.profile&authuser=0&prompt=none",
+    ),
+    "/auth/google/callback",
+  )
+}
+
+///|
 test "request_target_query_string returns None for plain paths" {
   assert_eq(request_target_query_string("/"), None)
   assert_eq(request_target_query_string("/index.html"), None)

@@ -879,6 +879,31 @@ test "query_params cached and decoded" {
   assert_eq(req.get_query("lang"), Some("en"))
   assert_eq(req.get_query("missing"), None)
 }
+
+///|
+test "query_params with forward slash values should not mess up the path" {
+  let req = @crescent.HttpRequest(
+    Get,
+    "/auth/google/callback?state=1a0f2e1bab91&iss=https://accounts.google.com&code=4/0ATsMZqDsBYfXVwvgrOEV2e1CGu4dc4cjaxGwx-o-mXW1PJT08b8bwNFetDBFBAgfcXnpGg&scope=email+profile+https://www.googleapis.com/auth/userinfo.email+openid+https://www.googleapis.com/auth/userinfo.profile&authuser=0&prompt=none",
+    {},
+    raw_body=b"",
+  )
+  assert_eq(req.path(), "/auth/google/callback")
+  assert_eq(
+    req.get_query("code"),
+    Some(
+      "4/0ATsMZqDsBYfXVwvgrOEV2e1CGu4dc4cjaxGwx-o-mXW1PJT08b8bwNFetDBFBAgfcXnpGg",
+    ),
+  )
+  assert_eq(
+    req.get_query("scope"),
+    Some(
+      "email profile https://www.googleapis.com/auth/userinfo.email openid https://www.googleapis.com/auth/userinfo.profile",
+    ),
+  )
+  assert_eq(req.get_query("iss"), Some("https://accounts.google.com"))
+  assert_eq(req.get_query("state"), Some("1a0f2e1bab91"))
+}
 ```
 
 ### HttpMethod Enum
