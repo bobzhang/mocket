@@ -21,7 +21,23 @@ test "get_cookie supports case-insensitive header lookup and delete_cookie expir
   assert_eq(req_mixed.get_cookie("missing"), None)
   let res = HttpResponse(status_code=OK)
   res.delete_cookie("session")
-  guard res.cookies.get("session") is Some({ value: "", max_age: Some(0), .. }) else {
-    fail("Expected deleted session cookie")
+  guard res.cookies.get("session")
+    is Some({ value: "", max_age: Some(0), path: Some("/"), .. }) else {
+    fail("Expected deleted session cookie with default Path=/")
+  }
+  // Cookies set with a narrower scope need explicit path/domain to match.
+  let scoped = HttpResponse(status_code=OK)
+  scoped.delete_cookie("session", path="/app", domain="example.com")
+  guard scoped.cookies.get("session")
+    is Some(
+      {
+        value: "",
+        max_age: Some(0),
+        path: Some("/app"),
+        domain: Some("example.com"),
+        ..
+      }
+    ) else {
+    fail("Expected scoped deletion to preserve path/domain")
   }
 }

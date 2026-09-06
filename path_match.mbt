@@ -3,7 +3,7 @@ fn App::find_route_for_method(
   self : App,
   http_method : String,
   path : String,
-) -> (HttpHandler, Map[String, StringView])? {
+) -> (RouteHandler, Map[String, StringView])? {
   if self.static_routes.get(http_method) is Some(method_routes) {
     if method_routes.get(path) is Some(handler) {
       return Some((handler, {}))
@@ -191,7 +191,7 @@ fn App::find_route(
   self : App,
   http_method : String,
   path : String,
-) -> (HttpHandler, Map[String, StringView])? {
+) -> (RouteHandler, Map[String, StringView])? {
   if self.find_route_for_method(http_method, path) is Some(route) {
     return Some(route)
   }

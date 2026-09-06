@@ -43,4 +43,3 @@ pub fn Uri::Uri(StringView) -> Self raise ParseError
 // Type aliases
 
 // Traits
-

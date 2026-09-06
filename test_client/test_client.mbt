@@ -110,5 +110,5 @@ pub async fn TestClient::request(
   let (status, resp_headers, body_bytes) = self.app.dispatch(
     meth, path, headers, body,
   )
-  { status, headers: resp_headers, body_bytes }
+  { status, headers: resp_headers, body_bytes, }
 }

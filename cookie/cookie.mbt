@@ -57,13 +57,13 @@ pub fn CookieItem::CookieItem(
   http_only? : Bool,
   same_site? : SameSiteOption,
 ) -> CookieItem {
-  { name, value, max_age, path, domain, secure, http_only, same_site }
+  { name, value, max_age, path, domain, secure, http_only, same_site, }
 }
 
 ///|
 fn sanitize_cookie_value(s : String) -> String {
   if s.contains("\r") || s.contains("\n") || s.contains(";") {
-    let buf = StringBuilder::new()
+    let buf = StringBuilder()
     for c in s {
       if c != '\r' && c != '\n' && c != ';' {
         buf.write_char(c)
@@ -134,9 +134,10 @@ pub fn parse_cookie(cookie : StringView) -> Map[String, CookieItem] {
     let key = key.to_owned()
     let value = dequote(value).to_owned()
     if last_cookie_item is Some((name, item)) {
-      let new_item = lexscan key with longest {
-        re"^(?i:path)$" => { ..item, path: Some(value) }
-        re"^(?i:domain)$" => { ..item, domain: Some(value) }
+      let new_item = lexscan
+        @lexbuf.StringScanner::{ data: key.view(), cursor: 0, } with longest {
+        re"^(?i:path)$" => { ..item, path: Some(value), }
+        re"^(?i:domain)$" => { ..item, domain: Some(value), }
         re"^(?i:max-age)$" =>
           {
             ..item,
@@ -146,10 +147,11 @@ pub fn parse_cookie(cookie : StringView) -> Map[String, CookieItem] {
               x => Some(x)
             },
           }
-        re"^(?i:secure)$" => { ..item, secure: Some(true) }
-        re"^(?i:httponly)$" => { ..item, http_only: Some(true) }
+        re"^(?i:secure)$" => { ..item, secure: Some(true), }
+        re"^(?i:httponly)$" => { ..item, http_only: Some(true), }
         re"^(?i:samesite)$" => {
-          let same_site = lexscan value with longest {
+          let same_site = lexscan
+            @lexbuf.StringScanner::{ data: value.view(), cursor: 0, } with longest {
             re"^(?i:lax)$" => Some(Lax)
             re"^(?i:strict)$" => Some(Strict)
             re"^(?i:none)$" => Some(SameSiteNone)
@@ -170,35 +172,34 @@ pub fn parse_cookie(cookie : StringView) -> Map[String, CookieItem] {
     last_cookie_item = Some((key, item))
   }
 
-  for curr = cookie {
-    // TODO: more spec compliance
-    // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#attributes
-    lexscan curr with longest {
-      (re"^[ \t]+", after=rest) => continue rest
-      (
-        (re"^[^ \t=;]([ \t]*[^ \t=;])*" as key) +
-        re"[ \t]*" +
-        re"=" +
-        re"[ \t]*" +
-        (re"[^ \t;]([ \t]*[^ \t;])*" as value) +
-        re"[ \t]*" +
-        re";?",
-        after=rest,
-      ) => {
+  // TODO: more spec compliance
+  // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie#attributes
+  // 0827-toolchain idiom: one scanner, shared cursor; lexscan advances it.
+  let sc = @lexbuf.StringScanner::{ data: cookie, cursor: 0, }
+  while sc.cursor < cookie.length() {
+    let advanced = lexscan sc with longest {
+      re"^[ \t]+" => true
+      (re"^[^ \t=;]([ \t]*[^ \t=;])*" as key) +
+      re"[ \t]*" +
+      re"=" +
+      re"[ \t]*" +
+      (re"[^ \t;]([ \t]*[^ \t;])*" as value) +
+      re"[ \t]*" +
+      re";?" => {
         on_key_value(key, value)
-        continue rest
+        true
       }
-      (
-        (re"^[^ \t=;]([ \t]*[^ \t=;])*" as key) +
-        re"[ \t]*" +
-        re"(=[ \t]*)?" +
-        re";?",
-        after=rest,
-      ) => {
+      (re"^[^ \t=;]([ \t]*[^ \t=;])*" as key) +
+      re"[ \t]*" +
+      re"(=[ \t]*)?" +
+      re";?" => {
         on_key_value(key, "")
-        continue rest
+        true
       }
-      _ => break
+      _ => false
+    }
+    if !advanced {
+      break
     }
   }
   res

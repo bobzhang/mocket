@@ -1,4 +1,23 @@
 ///|
+/// A registered route handler. SSE is not a special route kind: `App::sse`
+/// registers a `*` (wildcard-method) route whose handler is the `Sse` variant,
+/// so lookup, method fallback, and `routes()` introspection come from the
+/// ordinary tables — only the response differs, an open event stream
+/// instead of a finished body.
+enum RouteHandler {
+  Http(HttpHandler)
+  Sse(@sse.SseHandler)
+}
+
+///|
+fn RouteHandler::get(self : RouteHandler) -> HttpHandler {
+  match self {
+    Http(handler) => handler
+    Sse(_) => sse_synthetic_handler()
+  }
+}
+
+///|
 /// The main application type that holds route mappings, middleware, and WebSocket handlers.
 ///
 /// Routing state is split by access pattern:
@@ -13,9 +32,9 @@ pub struct App {
   /// Ordered middleware list; each entry is `(base_path_scope, middleware)`.
   priv middlewares : Array[(String, Middleware)]
   /// O(1) lookup for fixed paths: `Map[method, Map[path, handler]]`.
-  priv static_routes : Map[String, Map[String, HttpHandler]]
+  priv static_routes : Map[String, Map[String, RouteHandler]]
   /// O(path_length) lookup for parameterized paths (`:param`, `*`, `**`).
-  priv dynamic_routes : @router.RadixRouter[HttpHandler]
+  priv dynamic_routes : @router.RadixRouter[RouteHandler]
   /// O(1) lookup for fixed WebSocket paths.
   priv ws_static_routes : Map[String, @ws.WebSocketHandler]
   /// O(path_length) lookup for parameterized WebSocket paths.
@@ -49,9 +68,9 @@ pub fn App::App(base_path? : String = "") -> App {
     base_path,
     route_keys: [],
     middlewares: [],
-    static_routes: {},
+    static_routes: Map([]),
     dynamic_routes: RadixRouter(),
-    ws_static_routes: {},
+    ws_static_routes: Map([]),
     ws_dynamic_routes: RadixRouter(),
     ws_runtime_id: next_app_instance_id(),
     not_found_handler: None,
@@ -66,12 +85,14 @@ pub fn App::routes(self : App) -> Iter[(String, String)] {
 }
 
 ///|
-/// Registers a route handler for the given HTTP method and path.
-pub fn App::on(
+/// Registers a route handler under the given HTTP method and path. `on`
+/// wraps HTTP handlers and `sse` wraps SSE handlers as the `Sse` variant,
+/// so both flow through this single registration path.
+fn App::register_route(
   self : App,
   http_method : String,
   path : String,
-  handler : HttpHandler,
+  route_handler : RouteHandler,
 ) -> Unit {
   let path = self.base_path + path
   self.route_keys.push((http_method, path))
@@ -80,18 +101,29 @@ pub fn App::on(
   if !path.contains(":") && !path.contains("*") {
     // Static path: cache directly
     if self.static_routes.get(http_method) is Some(method_routes) {
-      method_routes.set(path, handler)
+      method_routes.set(path, route_handler)
     } else {
-      let new_routes : Map[String, HttpHandler] = Map::from_array([
-        (path, handler),
+      let new_routes : Map[String, RouteHandler] = Map::from_array([
+        (path, route_handler),
       ])
       self.static_routes.set(http_method, new_routes)
     }
   } else {
     // Dynamic path: compile and insert into radix tree
     let compiled = @router.CompiledRoute(path)
-    self.dynamic_routes.insert(http_method, compiled, handler)
+    self.dynamic_routes.insert(http_method, compiled, route_handler)
   }
+}
+
+///|
+/// Registers a route handler for the given HTTP method and path.
+pub fn App::on(
+  self : App,
+  http_method : String,
+  path : String,
+  handler : HttpHandler,
+) -> Unit {
+  self.register_route(http_method, path, Http(handler))
 }
 
 ///|
@@ -287,4 +319,21 @@ pub fn App::ws(
     let compiled = @router.CompiledRoute(path)
     self.ws_dynamic_routes.insert("WS", compiled, handler)
   }
+}
+
+///|
+/// Registers a Server-Sent Events handler that matches any HTTP method.
+///
+/// The route is registered under the `*` method key, so every verb invokes
+/// the handler (explicit method routes registered with `on` at the same
+/// path keep precedence, like any `*` route). The server responds with
+/// `Content-Type: text/event-stream` and hands the handler an `SseEmitter`
+/// that streams events over a chunked response. The stream ends when the
+/// handler returns (or the client disconnects); the connection is then
+/// closed — `EventSource` clients reconnect automatically.
+///
+/// Dynamic patterns (`:param`, `*`, `**`) are supported, with the same
+/// precedence rules as HTTP routes: static > param > wildcard > globstar.
+pub fn App::sse(self : App, path : String, handler : @sse.SseHandler) -> Unit {
+  self.register_route("*", path, Sse(handler))
 }

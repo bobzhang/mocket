@@ -37,4 +37,3 @@ pub enum RouteSegment {
 // Type aliases
 
 // Traits
-

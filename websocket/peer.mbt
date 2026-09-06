@@ -17,7 +17,7 @@ pub fn WebSocketPeer::WebSocketPeer(
   connection_id~ : String,
   params? : Map[String, String],
 ) -> WebSocketPeer {
-  { connection_id, subscribed_channels: [], params: params.unwrap_or({}) }
+  { connection_id, subscribed_channels: [], params: params.unwrap_or({}), }
 }
 
 ///|

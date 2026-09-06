@@ -1,4 +1,10 @@
 ///|
+const ABSOLUTE_FORM = re"^[A-Za-z][A-Za-z0-9+.\-]*://[^/?#]*"
+
+///|
+const ORIGIN_FORM = re"^/[^?#]*"
+
+///|
 /// Extracts the path component from an HTTP request target.
 ///
 /// Handles all request-target forms from RFC 7230 §5.3:
@@ -6,43 +12,29 @@
 /// - absolute-form: `http://host/path?query` → returns `/path`
 /// - authority-form: `host:port` (CONNECT only) → returns the target unchanged
 /// - asterisk-form: `*` (OPTIONS only) → returns `*`
-pub fn request_target_path(request_target : String) -> String {
-  // Detect absolute-form (contains a scheme "://").
-  // We must only strip `//` inside the path, never the scheme separator.
-  let after_scheme = match request_target.find("://") {
-    Some(scheme_end) => {
-      // absolute-form: skip past the authority to find the path
-      let authority_start = scheme_end + 3
-      match request_target[authority_start:].find("/") {
-        Some(rel_path_start) =>
-          // Path exists — extract from the first `/` after authority
-          authority_start + rel_path_start
-        None =>
-          // No path, default to "/"
-          return "/"
-      }
+pub fn request_target_path(target : String) -> String {
+  // Asterisk-form.
+  if target =~ re"^\*$" {
+    return "*"
+  }
+
+  // Origin-form.
+  if target =~ (ORIGIN_FORM as path) {
+    return normalize_path(path.to_owned())
+  }
+
+  // Absolute-form.
+  //
+  // Match and discard scheme + authority, leaving the remainder.
+  if target =~ (ABSOLUTE_FORM, after=rest) {
+    if rest =~ (ORIGIN_FORM as path) {
+      return normalize_path(path.to_owned())
     }
-    None => 0 // origin-form or other: start from position 0
+    return "/"
   }
-  // Now clip query/fragment from the path-portion
-  let target_from_path = request_target[after_scheme:]
-  let mut end = target_from_path.length()
-  match target_from_path.find("?") {
-    Some(index) => if index < end { end = index }
-    None => ()
-  }
-  match target_from_path.find("#") {
-    Some(index) => if index < end { end = index }
-    None => ()
-  }
-  let path_view = target_from_path[:end]
-  // Only normalize `//` within the path itself.
-  let path_str = path_view.to_owned()
-  if path_str.contains("//") {
-    normalize_path(path_str)
-  } else {
-    path_str
-  }
+
+  // Authority-form, or an unrecognized/invalid target.
+  target
 }
 
 ///|
@@ -52,7 +44,7 @@ pub fn normalize_path(path : String) -> String {
   if !path.contains("//") {
     return path
   }
-  let buf = StringBuilder::new()
+  let buf = StringBuilder()
   let mut prev_slash = false
   for c in path {
     if c == '/' {
