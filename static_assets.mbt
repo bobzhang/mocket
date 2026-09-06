@@ -273,7 +273,7 @@ pub fn App::static_assets(
             return HttpResponse(status_code=OK, headers=head_headers)
           }
           let contents = provider.get_contents(id)
-          StaticResolvedResponder::{ inner: contents, asset_headers }
+          StaticResolvedResponder::{ inner: contents, asset_headers, }
         }
       }
     },

@@ -52,8 +52,8 @@ fn build_todo_app() -> @crescent.App {
   let app = @crescent.App()
   // In-memory store
   let todos : Array[Todo] = [
-    { id: 1, title: "Learn MoonBit", done: true },
-    { id: 2, title: "Build web app", done: false },
+    { id: 1, title: "Learn MoonBit", done: true, },
+    { id: 2, title: "Build web app", done: false, },
   ]
   let next_id = Ref(3)
 
@@ -80,7 +80,7 @@ fn build_todo_app() -> @crescent.App {
     let input : CreateTodo = event.req.json()
     let id = next_id.val
     next_id.val += 1
-    let todo = Todo::{ id, title: input.title, done: false }
+    let todo = Todo::{ id, title: input.title, done: false, }
     todos.push(todo)
     @crescent.HttpResponse::created().json_value(todo)
   })
@@ -117,7 +117,7 @@ async test "full-stack: get single todo by id" {
   let res = client.get("/api/todos/1")
   assert_eq(res.status, OK)
   let todo : Todo = res.body_json()
-  assert_eq(todo, { id: 1, title: "Learn MoonBit", done: true })
+  assert_eq(todo, { id: 1, title: "Learn MoonBit", done: true, })
 }
 
 ///|
@@ -145,7 +145,7 @@ async test "full-stack: get nonexistent todo returns 404" {
 ///|
 async test "full-stack: create todo with json body" {
   let client = @test_client.TestClient(build_todo_app())
-  let input : CreateTodo = { title: "Write tests" }
+  let input : CreateTodo = { title: "Write tests", }
   let body = input.to_json().stringify()
   let res = client.post("/api/todos", body=@utf8.encode(body))
   assert_eq(res.status, Created)
@@ -248,7 +248,7 @@ async test "full-stack: middleware chain with typed handlers" {
     res
   })
   app.get("/api/data", _event => {
-    let todo : Todo = { id: 1, title: "test", done: false }
+    let todo : Todo = { id: 1, title: "test", done: false, }
     @crescent.HttpResponse::ok().json_value(todo)
   })
   let client = @test_client.TestClient(app)
@@ -314,12 +314,12 @@ async test "full-stack: event.json() shorthand parses request body" {
   app.post("/api/todos", event => {
     // Use event.json() shorthand instead of event.req.json()
     let input : CreateTodo = event.json()
-    let todo = Todo::{ id: 1, title: input.title, done: false }
+    let todo = Todo::{ id: 1, title: input.title, done: false, }
     @crescent.HttpResponse::created().json_value(todo)
   })
   let client = @test_client.TestClient(app)
   let body = @utf8.encode(
-    ({ title: "Test shorthand" } : CreateTodo).to_json().stringify(),
+    ({ title: "Test shorthand", } : CreateTodo).to_json().stringify(),
   )
   let res = client.post("/api/todos", body~)
   assert_eq(res.status, Created)
@@ -333,7 +333,7 @@ async test "full-stack: require_param_int simplifies typed handlers" {
   app.get("/api/todos/:id", event => {
     // Use require_param_int instead of match + raise boilerplate
     let id = event.require_param_int("id")
-    let todo = Todo::{ id, title: "Found", done: true }
+    let todo = Todo::{ id, title: "Found", done: true, }
     @crescent.HttpResponse::ok().json_value(todo)
   })
   let client = @test_client.TestClient(app)

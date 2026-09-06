@@ -32,7 +32,7 @@ pub fn SseEvent::SseEvent(
   event? : String,
   retry? : Int,
 ) -> SseEvent {
-  { data, id, event, retry }
+  { data, id, event, retry, }
 }
 
 ///|

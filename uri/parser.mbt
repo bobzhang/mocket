@@ -228,7 +228,7 @@ fn parse_authority(
   source : StringView,
   uri : Uri,
 ) -> StringView raise ParseError {
-  let authority = Authority::{ userinfo: None, host: RegName(""), port: None }
+  let authority = Authority::{ userinfo: None, host: RegName(""), port: None, }
   uri.authority = Some(authority)
 
   // Try to parse userinfo first

@@ -287,7 +287,7 @@ test "try_json returns Ok on valid json" {
     raw_body=@utf8.encode("{\"name\":\"Alice\",\"age\":30}"),
   )
   let result : Result[TryJsonTestUser, String] = req.try_json()
-  assert_eq(result, Ok({ name: "Alice", age: 30 }))
+  assert_eq(result, Ok({ name: "Alice", age: 30, }))
 }
 
 ///|

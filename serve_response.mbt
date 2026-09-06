@@ -196,7 +196,7 @@ impl Responder for SseStreamResponder with fn output_bytes(_self) -> Bytes? {
 /// finalization like any other route (materializing the event-stream
 /// headers with an empty body).
 fn sse_synthetic_handler() -> HttpHandler {
-  _event => SseStreamResponder::{  }
+  _event => SseStreamResponder::{ }
 }
 
 ///|
@@ -217,7 +217,7 @@ async fn handle_sse_request_async(
   let stream_requested : Ref[Bool] = Ref(false)
   let responder = execute_middlewares(middlewares, event, _event => {
     stream_requested.val = true
-    SseStreamResponder::{  }
+    SseStreamResponder::{ }
   })
   if stream_requested.val {
     stream_sse_response_async(conn, event, handler)

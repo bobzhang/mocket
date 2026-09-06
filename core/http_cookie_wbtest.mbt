@@ -35,7 +35,7 @@ test "get_cookie supports case-insensitive header lookup and delete_cookie expir
         max_age: Some(0),
         path: Some("/app"),
         domain: Some("example.com"),
-        ..,
+        ..
       }
     ) else {
     fail("Expected scoped deletion to preserve path/domain")
